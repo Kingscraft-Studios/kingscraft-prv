@@ -1,0 +1,85 @@
+
+#pragma once
+
+#define GLFW_INCLUDE_VULKAN
+
+#include "GLFW/glfw3.h"
+
+#include <string>
+#include <functional>
+
+namespace lve {
+
+    class Window {
+    public:
+        Window(int w, int h, const std::string& name);
+
+        ~Window();
+
+        Window(const Window &) = delete;
+
+        Window &operator=(const Window &) = delete;
+
+        bool shouldClose() { return glfwWindowShouldClose(window); }
+
+        VkExtent2D getExtent() { return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)}; }
+
+        bool wasWindowResized() { return framebufferResized; }
+
+        void resetWindowResizedFlag() { framebufferResized = false; }
+
+        void createWindowSurface(VkInstance instance, VkSurfaceKHR *surface);
+        GLFWwindow* getGLFWWindow() const { return window; }
+
+        void processInput();
+        void toggleFullscreen();
+
+        // FIX: Added function signatures to std::function
+        using MouseMovementCallback = std::function<void(double, double)>;
+        using MouseButtonCallback = std::function<void(int, int, int)>;
+
+        // FIX: Assign the callbacks to the private members
+        void setMouseMoveCallback(MouseMovementCallback cb) { mouseMovementCallback = std::move(cb); }
+        void setMouseButtonCallback(MouseButtonCallback cb) { mouseButtonCallback = std::move(cb); }
+
+        void setFullscreenToggleCallback(std::function<void()> callback) {
+            fullscreenToggleCallback = std::move(callback);
+        }
+
+        void setLoading(bool loading) { isLoading = loading;}
+        bool getLoading() const {return isLoading;}
+
+        // Helper to get last mouse pos for click logic
+        double getLastX() const { return lastX; }
+        double getLastY() const { return lastY; }
+
+    private:
+        static void framebufferResizeCallback(GLFWwindow *window, int width, int height);
+
+        void initWindow();
+
+        int width;
+        int height;
+        bool framebufferResized = false;
+
+        std::string windowName;
+        GLFWwindow *window;
+
+        bool isFullscreen = false;
+        int windowedX = 100, windowedY = 100;
+        int windowedWidth;
+        int windowedHeight;
+
+        GLFWmonitor* monitor = nullptr;
+        const GLFWvidmode* videoMode = nullptr;
+
+        std::function<void()> fullscreenToggleCallback;
+
+        bool isLoading = false;
+
+        MouseMovementCallback mouseMovementCallback;
+        MouseButtonCallback mouseButtonCallback;
+
+        double lastX = 0, lastY = 0;
+    };
+}  // namespace lve

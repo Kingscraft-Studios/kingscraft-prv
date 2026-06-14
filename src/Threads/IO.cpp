@@ -1,90 +1,37 @@
 #include "Threads/IO.hpp"
 
-#include <fstream>
-#include <iostream>
-#include <mutex>
+#include <filesystem>
 
+#include <fstream>
 
 namespace lve {
-    std::unique_ptr<IO> IO::instance = nullptr;
 
-    IO::IO() {
-        running = true;
-        worker = std::thread(&IO::run, this);
-        mailbox = std::make_shared<Mailbox>();
+    std::unique_ptr<IO> IO::instance_ = nullptr;
+
+    void IO::Init() {
+        instance_ = std::make_unique<IO>();
     }
 
-    void IO::start() {
-        Message msg;
+    void IO::Shutdown() {
+        if (!instance_) return;
+        instance_.reset();
+    }
 
-        while (mailbox->pop(msg)) {
-            if (!msg.payload) {
-                std::cout << "[ERROR] Payload Empty\n";
-                continue;
-            }
+    IO& IO::Get() {
+        return *instance_;
+    }
 
-            {
-                std::lock_guard<std::mutex> lock(mtx);
-                queue.push(msg.payload); // 🔥 forward to worker
-            }
+    void IO::writeLogFile(const std::string& path, const std::string& text) {
 
-            cv.notify_one();
+        // 1. ensure directory exists
+        std::filesystem::path filePath(path);
+        std::filesystem::create_directories(filePath.parent_path());
+
+        // 2. write file
+        std::ofstream file(path, std::ios::app);
+        if (file.is_open()) {
+            file << text << std::endl;
         }
     }
 
-    void IO::run() {
-        while (true) {
-            std::function<void()> job;
-
-            {
-                std::unique_lock<std::mutex> lock(mtx);
-
-                cv.wait(lock, [&] {
-                    return !queue.empty() || !running;
-                });
-
-                if (!running && queue.empty())
-                    break;
-
-                job = std::move(queue.front());
-                queue.pop();
-            }
-
-            job(); // 🔥 Execute the task
-        }
-    }
-
-    void IO::write(const std::string& path, const std::string& text, bool append) {
-        {
-            std::lock_guard<std::mutex> lock(mtx);
-
-            queue.push([path, text, append]() {
-                std::ofstream file;
-
-                if (append)
-                    file.open(path, std::ios::app);
-                else
-                    file.open(path, std::ios::trunc);
-
-                if (file.is_open()) {
-                    file << text;
-                    file.flush();
-                }
-            });
-        }
-        cv.notify_one();
-    }
-
-    void IO::stop() {
-        mailbox->stop();
-        {
-            std::lock_guard<std::mutex> lock(mtx);
-            running = false;
-        }
-        cv.notify_all();
-
-        if (worker.joinable())
-            worker.join();
-
-    }
-}
+} // namespace lve

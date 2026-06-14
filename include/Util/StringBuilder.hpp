@@ -1,0 +1,15 @@
+#pragma once
+#include <sstream>
+#include <string>
+
+class StringBuilder {
+public:
+    template<typename... Args>
+    static std::string build(Args... args) {
+        std::stringstream ss;
+
+        (ss << ... << args);
+
+        return ss.str();
+    }
+};

@@ -2,14 +2,11 @@
 #include <functional>
 
 enum class ThreadName {
-    Main,
-    Render,
-    IO,
-    Logger
+    Engine,
+    Renderer
 };
 
 struct Message {
-    ThreadName sender;
     ThreadName target;
     std::function<void()> payload;
 };

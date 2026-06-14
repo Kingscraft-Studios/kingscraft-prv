@@ -30,6 +30,15 @@ namespace lve {
 
         void run();
 
+        enum class RenderState {
+            Running,
+            Paused,
+            Rebuilding
+        };
+
+        void pauseRenderer();
+        void resumeRenderer();
+
     private:
         void loadModels();
         void createDescriptorSetLayout();
@@ -65,6 +74,7 @@ namespace lve {
         VkDescriptorPool loadingDescriptorPool;
         VkDescriptorSet loadingDescriptorSet;
         VkDescriptorSetLayout descriptorSetLayout;
+        RenderState renderState = RenderState::Running;
 
         std::unique_ptr<UiSystem> uiSystem;
 

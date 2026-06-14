@@ -1,10 +1,10 @@
 #include "Vulkan/App.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 #include <chrono>
+#include <iostream>
+
 #include "NsRender/VKFactory.h"
-#include "Utils/Message.hpp"
 
 namespace lve {
 
@@ -66,31 +66,50 @@ namespace lve {
 
     void App::run() {
 
-    // 🔥 Main loop
-    while (!window.shouldClose()) {
-        glfwPollEvents();
-        window.processInput();
+        while (!window.shouldClose()) {
 
-        auto currentExtent = window.getExtent();
+            // ALWAYS keep OS responsive
+            glfwPollEvents();
+            window.processInput();
 
-        if ((requestSwapchainRecreate || window.wasWindowResized()) &&
-            currentExtent.width > 0 && currentExtent.height > 0) {
+            auto currentExtent = window.getExtent();
 
-            window.resetWindowResizedFlag();
-            recreateSwapChain();
+            // ---- SAFE REBUILD REQUEST ----
+            if ((requestSwapchainRecreate || window.wasWindowResized()) && currentExtent.width > 0 && currentExtent.height > 0) {
 
-            lastExtent = currentExtent;
-            uiSystem->resize(currentExtent.width, currentExtent.height);
-            requestSwapchainRecreate = false;
+                requestSwapchainRecreate = false;
+
+                // TODO: instead of vkDeviceWaitIdle() use Frame In Flight so GPU doesnt stop Only Frame stop or whatever
+
+                // enter safe state
+                pauseRenderer();
+
+                window.resetWindowResizedFlag();
+
+                recreateSwapChain();
+                uiSystem->resize(currentExtent.width, currentExtent.height);
+
+                resumeRenderer();
+            }
+
+            // ---- RENDER GATE ----
+            if (renderState == RenderState::Running) {
+                drawFrame();
+            }
         }
 
-        drawFrame();
+        vkDeviceWaitIdle(device.device());
     }
 
-    vkDeviceWaitIdle(device.device());
-}
+    void App::pauseRenderer() {
+        renderState = RenderState::Paused;
 
+        vkDeviceWaitIdle(device.device());
+    }
 
+    void App::resumeRenderer() {
+        renderState = RenderState::Running;
+    }
 
     void App::loadModels() {
         // std::vector<LveModel::Vertex> vertices = {
@@ -345,6 +364,8 @@ namespace lve {
     }
 
     void App::drawFrame() {
+        if (renderState != RenderState::Running)
+            return;
         uint32_t imageIndex;
         auto result = swapchain->acquireNextImage(&imageIndex);
 

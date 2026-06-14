@@ -2,35 +2,54 @@
 
 #include <iostream>
 
+#include "Threads/IO.hpp"
+#include "Util/StringBuilder.hpp"
+#include "Util/TimeUtil.hpp"
 
 namespace lve {
-    std::unique_ptr<Logger> Logger::instance = nullptr;
 
-    Logger::Logger() {
-        mailbox = std::make_shared<Mailbox>();
+    std::unique_ptr<Logger> Logger::instance_ = nullptr;
+
+    void Logger::Init() {
+        instance_ = std::make_unique<Logger>();
+        instance_->logFilePath_ = instance_->createLogFileName();
+        instance_->printHeader();
     }
 
-    void Logger::start() {
-        Message msg;
-        while (mailbox->pop(msg)) {
-            if (!msg.payload) {
-                log("[ERROR] Payload Empty");
-                continue;
-            }
+    void Logger::Shutdown() {
+        if (!instance_) return;
+        instance_.reset();
+    }
 
-            msg.payload();
+    Logger& Logger::Get() {
+        return *instance_;
+    }
+
+    void Logger::log(LogLevel level, ThreadName caller, std::string data) {
+
+        std::string line = buildLogLine(level, caller, data);
+
+        if (level == LogLevel::ERROR || level == LogLevel::WARN) {
+            std::cerr << line << std::endl;
+        } else {
+            std::cout << line << std::endl;
         }
+
+        IO::Get().writeLogFile(logFilePath_, line);
     }
 
-    void Logger::stop() {
-        mailbox->stop();
+    std::string Logger::createLogFileName() {
+        return "logs/" + TimeUtil::getCurrentSystemTime(TimeFormat::File) + ".log";
     }
 
-
-    void Logger::log(std::string data) {
-        {
-            std::lock_guard<std::mutex> lock(mtx);
-            std::cout << data << std::endl;
-        }
+    std::string Logger::buildLogLine(LogLevel level,
+                                 ThreadName caller,
+                                 const std::string& data) {
+        return StringBuilder::build(
+            "[", TimeUtil::uptimeSeconds(), "] ",
+            "[", logLevelToString(level), "] ",
+            "[", threadToString(caller), "] ",
+            data
+        );
     }
-}
+} // namespace lve

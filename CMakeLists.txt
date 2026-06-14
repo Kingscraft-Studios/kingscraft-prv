@@ -36,10 +36,8 @@ add_executable(godscraft
         ${SOURCE_FILES}
         ${HEADER_FILES}
         ${NOESIS_VK_SOURCES}
-        include/Threads/IO.hpp
-        src/Threads/IO.cpp
-        include/Threads/Logger.hpp
-        src/Threads/Logger.cpp
+        include/Util/StringBuilder.hpp
+        include/Util/TimeUtil.hpp
 )
 
 target_link_directories(godscraft PRIVATE

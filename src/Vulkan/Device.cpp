@@ -6,15 +6,45 @@
 #include <set>
 #include <unordered_set>
 
+#include "Bus/BusUtil.hpp"
+#include "Threads/Logger.hpp"
+
 namespace lve {
 
-// local callback functions
+    // local callback functions
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
             VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
             VkDebugUtilsMessageTypeFlagsEXT messageType,
             const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
             void *pUserData) {
-        std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+
+        LogLevel level;
+
+        if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+            level = LogLevel::ERROR;
+        else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+            level = LogLevel::WARN;
+        else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+            level = LogLevel::INFO;
+        else
+            level = LogLevel::DEBUG;
+
+        std::string prefix;
+
+        if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT)
+            prefix += "[General] ";
+
+        if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
+            prefix += "[Validation] ";
+
+        if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
+            prefix += "[Performance] ";
+
+        std::string line = StringBuilder::build(prefix, "Validation Layer: ", pCallbackData->pMessage);
+
+        BusUtil::structure(SType::Send, ThreadName::Engine, [level, line]() {
+            Logger::Get().log(level, ThreadName::Renderer, line);
+        });
 
         return VK_FALSE;
     }
@@ -75,11 +105,11 @@ namespace lve {
 
         VkApplicationInfo appInfo = {};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = "LittleVulkanEngine App";
+        appInfo.pApplicationName = "Kingscraft";
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.pEngineName = "No Engine";
+        appInfo.pEngineName = "Kingscraft Engine";
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.apiVersion = VK_API_VERSION_1_0;
+        appInfo.apiVersion = VK_API_VERSION_1_2;
 
         VkInstanceCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -114,7 +144,9 @@ namespace lve {
         if (deviceCount == 0) {
             throw std::runtime_error("failed to find GPUs with Vulkan support!");
         }
-        std::cout << "Device count: " << deviceCount << std::endl;
+        BusUtil::structure(SType::Send, ThreadName::Engine, [deviceCount]() {
+            Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, StringBuilder::build("Device Count: ", deviceCount));
+        });
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
@@ -130,7 +162,18 @@ namespace lve {
         }
 
         vkGetPhysicalDeviceProperties(physicalDevice, &properties);
-        std::cout << "physical device: " << properties.deviceName << std::endl;
+        std::string deviceName = properties.deviceName;
+        uint32_t major = VK_API_VERSION_MAJOR(properties.apiVersion);
+        uint32_t minor = VK_API_VERSION_MINOR(properties.apiVersion);
+        uint32_t patch = VK_API_VERSION_PATCH(properties.apiVersion);
+        //TODO: use VkPhysicalDeviceDriverProperties through the vkGetPhysicalDeviceProperties2
+        auto driverVersion = properties.driverVersion;
+
+        BusUtil::structure(SType::Send, ThreadName::Engine, [deviceName, major, minor, patch, driverVersion]() {
+            Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, StringBuilder::build("Selected GPU: ", deviceName));
+            Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, StringBuilder::build("Vulkan API: ", major, ".", minor, ".", patch));
+            Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, StringBuilder::build("Driver Version: ", driverVersion));
+        });
     }
 
     void Device::createLogicalDevice() {
@@ -392,22 +435,28 @@ namespace lve {
     void Device::hasGflwRequiredInstanceExtensions() {
         uint32_t extensionCount = 0;
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+
         std::vector<VkExtensionProperties> extensions(extensionCount);
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
-        std::cout << "available extensions:" << std::endl;
         std::unordered_set<std::string> available;
-        for (const auto &extension: extensions) {
-            std::cout << "\t" << extension.extensionName << std::endl;
+        available.reserve(extensionCount);
+
+        for (const auto& extension : extensions) {
             available.insert(extension.extensionName);
         }
 
-        std::cout << "required extensions:" << std::endl;
         auto requiredExtensions = getRequiredExtensions();
-        for (const auto &required: requiredExtensions) {
-            std::cout << "\t" << required << std::endl;
-            if (available.find(required) == available.end()) {
-                throw std::runtime_error("Missing required glfw extension");
+
+        // Print summary
+        Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, StringBuilder::build("Available Vulkan Extensions: ", extensionCount));
+
+        Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, StringBuilder::build("Required Extensions: ", requiredExtensions.size()));
+
+        // Validation check
+        for (const auto& required : requiredExtensions) {
+            if (!available.contains(required)) {
+                throw std::runtime_error(StringBuilder::build("Missing Required Vulkan Extension: ", required));
             }
         }
     }

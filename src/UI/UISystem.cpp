@@ -1,6 +1,8 @@
 #include <iostream>
 
+#include "Bus/BusUtil.hpp"
 #include "NsApp/LocalFontProvider.h"
+#include "Threads/Logger.hpp"
 #include "UI/NoesisXamlProvider.hpp"
 #include "UI/UiSystem.hpp"
 
@@ -12,20 +14,19 @@ namespace lve {
     void UiSystem::init(int width, int height, const NoesisApp::VKFactory::InstanceInfo& vkinfo,
                         VkRenderPass renderPass) {
         Noesis::GUI::SetLogHandler([](const char*, uint32_t, uint32_t level, const char* channel, const char* message) {
-            // 1. Explicitly map the level to a string
-            const char* levelStr = "UNKNOWN";
-            if (level == 0) levelStr = "TRACE";
-            else if (level == 1) levelStr = "DEBUG";
-            else if (level == 2) levelStr = "INFO";
-            else if (level == 3) levelStr = "WARN";
-            else if (level == 4) levelStr = "ERROR";
+            LogLevel levelStr;
 
-            // 2. Clean up the channel name (Core messages often have null/empty channels)
-            const char* channelStr = (channel && channel[0] != '\0') ? channel : "Noesis";
+            if (level == 0) levelStr = LogLevel::ERROR;
+            else if (level == 1) levelStr = LogLevel::DEBUG;
+            else if (level == 2) levelStr = LogLevel::INFO;
+            else if (level == 3) levelStr = LogLevel::WARN;
+            else if (level == 4) levelStr = LogLevel::ERROR;
 
-            // 3. Print with a tight structure: [LEVEL][CHANNEL] MESSAGE
-            // No extra spaces, just pure information.
-            printf("[%s][%s] %s\n", levelStr, channelStr, message);
+            std::string msgCopy = message ? message : "";
+
+            BusUtil::structure(SType::Send, ThreadName::Engine, [levelStr, msgCopy]() {
+                Logger::Get().log(levelStr, ThreadName::Renderer, msgCopy);
+            });
         });
         Noesis::GUI::Init();
         initialized = true;
@@ -33,7 +34,8 @@ namespace lve {
         device = NoesisApp::VKFactory::CreateDevice(true, vkinfo);
         Pass = renderPass;
 
-
+        // TODO: use cache .bin instead of raw .xaml! Validation steps: Store hash of original XAML inside .bin and try parse bin as 2 safety nets
+        // TODO: For Vulkan Do not forget to wrap the cache in a header with at least a Hash, Version and Magic
         Noesis::GUI::SetXamlProvider(Noesis::MakePtr<XamlProvider>());
         Noesis::GUI::SetFontProvider(Noesis::MakePtr<NoesisApp::LocalFontProvider>("resources/fonts"));
 

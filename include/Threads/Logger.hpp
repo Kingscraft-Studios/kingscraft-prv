@@ -1,35 +1,76 @@
 #pragma once
 #include <memory>
+#include <string>
+#include <functional>
+#include <iostream>
 
-#include "Utils/Mailbox.hpp"
+#include "IO.hpp"
+#include "Bus/Mailbox.hpp"
+#include "Bus/Message.hpp"
+#include "Util/StringBuilder.hpp"
+#include "Util/TimeUtil.hpp"
 
 namespace lve {
+
+    enum LogLevel {
+        DEBUG,
+        INFO,
+        WARN,
+        ERROR
+    };
+
     class Logger {
     public:
-        static void Init() {
-            if (!instance) {
-                instance = std::make_unique<Logger>();
-            }
-        }
-        static Logger& Get() {
-            return *instance;
-        }
-        static void Shutdown() {
-            instance->stop();
-            instance.reset();
-        }
 
-        Logger();
+        static void Init();
+        static void Shutdown();
+        static Logger& Get();
 
-        void start();
-        void stop();
-
-        void log(std::string data);
+        void log(LogLevel level, ThreadName sender, std::string data);
 
     private:
-        static std::unique_ptr<Logger> instance;
-        std::shared_ptr<Mailbox> mailbox;
+        std::string createLogFileName();
+        std::string buildLogLine(LogLevel level, ThreadName caller, const std::string& data);
 
-        std::mutex mtx;
+        void printHeader() {
+            std::string header =
+                "[DEBUG] ============================================================\n"
+                "[DEBUG] Kingscraft Engine Logs Initialized\n"
+                "[DEBUG] Version    : 1.0.0-PreAlpha\n"
+                "[DEBUG] Build      : Debug\n"
+                "[DEBUG] Platform   : Linux\n"
+                "[DEBUG] Start Time : " + TimeUtil::getCurrentSystemTime(TimeFormat::Logger) +
+                "\n[DEBUG] ============================================================\n";
+
+            std::cout << header << std::endl;
+
+            IO::Get().writeLogFile(logFilePath_, header);
+
+        }
+
+        const char* logLevelToString(LogLevel level) {
+            switch (level) {
+                case LogLevel::DEBUG:    return "DEBUG";
+                case LogLevel::INFO:     return "INFO";
+                case LogLevel::WARN:  return "WARN";
+                case LogLevel::ERROR:    return "ERROR";
+            }
+
+            return "UNKNOWN";
+        }
+
+        const char* threadToString(ThreadName thread) {
+            switch (thread) {
+                case ThreadName::Engine:   return "Engine";
+                case ThreadName::Renderer: return "Renderer";
+            }
+
+            return "Unknown";
+        }
+
+        std::string logFilePath_;
+
+        static std::unique_ptr<Logger> instance_;
     };
-}
+
+} // namespace lve

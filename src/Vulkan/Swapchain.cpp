@@ -7,6 +7,9 @@
 #include <limits>
 #include <stdexcept>
 
+#include "Bus/BusUtil.hpp"
+#include "Threads/Logger.hpp"
+
 namespace lve {
 
     SwapChain::SwapChain(Device &deviceRef, VkExtent2D extent)
@@ -332,13 +335,17 @@ namespace lve {
         // 1) Try Immediate mode - no V-Sync, may cause tearing
         for (const auto &availablePresentMode : availablePresentModes) {
             if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
-                std::cout << "Present mode: Immediate (V-Sync OFF)" << std::endl;
+                BusUtil::structure(SType::Send, ThreadName::Engine, []() {
+                    Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, "Present Mode: Immediate (V-Sync OFF)");
+                });
                 return availablePresentMode;
             }
         }
 
         // 3) Fallback to FIFO - guaranteed available, V-Sync ON
-        std::cout << "Present mode: FIFO (V-Sync ON fallback)" << std::endl;
+        BusUtil::structure(SType::Send, ThreadName::Engine, []() {
+                    Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, "Present Mode: FIFO (V-Sync ON)");
+                });
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 

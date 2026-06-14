@@ -5,6 +5,9 @@
 #include <stdexcept>
 
 #include "stb_image.h"
+#include "Bus/BusUtil.hpp"
+#include "Bus/Message.hpp"
+#include "Threads/Logger.hpp"
 
 namespace lve {
 
@@ -24,6 +27,7 @@ namespace lve {
 
         window = glfwCreateWindow(width, height, windowName.c_str(), nullptr, nullptr);
 
+        //TODO: make it so it uses a Shared Class instead of Inline
         GLFWimage icon[1];
         int channels;
 
@@ -33,7 +37,9 @@ namespace lve {
             glfwSetWindowIcon(window, 1, icon);
             stbi_image_free(icon[0].pixels);
         } else {
-            printf("Warning: Failed to load window icon!\n");
+            BusUtil::structure(SType::Send, ThreadName::Engine, []() {
+                   Logger::Get().log(LogLevel::WARN, ThreadName::Renderer, "Failed to load window icon!");
+               });
         }
 
         glfwGetWindowPos(window, &windowedX, &windowedY);
@@ -114,7 +120,7 @@ namespace lve {
         if (isF11Pressed && !f11PressedLastFrame) {
             toggleFullscreen();
 
-            // ✅ Only call once when F11 is newly pressed
+            // Only call once when F11 is newly pressed
             if (fullscreenToggleCallback) {
                 fullscreenToggleCallback();
             }

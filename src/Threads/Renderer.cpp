@@ -1,26 +1,13 @@
 #include "Threads/Renderer.hpp"
 #include "Vulkan/App.hpp"
-#include <iostream>
 
 namespace lve {
 
-    std::unique_ptr<Renderer> Renderer::instance = nullptr;
-
-    Renderer::Renderer() {
-    }
-
     void Renderer::run() {
-        try {
-            App app;
-            app.run();
-        } catch (std::exception e) {
-            std::cout << "Exceptiom: "  << e.what() << std::endl;
-        }
+        App app;
+        app.run();
 
-    }
-
-
-    void Renderer::stop() {
+        if (quitCallback_) quitCallback_();
     }
 
 } // namespace lve

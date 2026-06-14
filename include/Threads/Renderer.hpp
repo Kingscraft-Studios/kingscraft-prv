@@ -1,33 +1,15 @@
 #pragma once
-
-#include <memory>
-
-#include "Utils/Mailbox.hpp"
+#include <functional>
 
 namespace lve {
 
     class Renderer {
     public:
-        static void Init() {
-            if (!instance)
-                instance = std::make_unique<Renderer>();
-        }
-        static void Shutdown() {
-            instance->stop();
-            instance.reset();
-        }
-        static Renderer& Get() {
-            return *instance;
-        }
-
-        Renderer();
-
+        void setQuitCallback(std::function<void()> cb) { quitCallback_ = std::move(cb); }
         void run();
-        void stop();
 
     private:
-        static std::unique_ptr<Renderer> instance;
-
+        std::function<void()> quitCallback_;
     };
 
 } // namespace lve

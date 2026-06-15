@@ -1,16 +1,14 @@
 #include "../../include/Vulkan/Pipeline.hpp"
-#include "../../include/Vulkan/Model.hpp"
 
 //std
-#include <fstream>
 #include <stdexcept>
 #include <iostream>
 #include <cassert>
 
 namespace lve {
-    Pipeline::Pipeline(lve::Device &device, const std::string &vertFilePath, const std::string &fragFilePath,
+    Pipeline::Pipeline(lve::Device &device, const std::vector<char>& vertCode, const std::vector<char>& fragCode,
                              const lve::PipelineConfigInfo configInfo) : device(device) {
-        createGraphicsPipeline(vertFilePath, fragFilePath, configInfo);
+        createGraphicsPipeline(vertCode, fragCode, configInfo);
     }
 
     Pipeline::~Pipeline() {
@@ -19,38 +17,18 @@ namespace lve {
         vkDestroyShaderModule(device.device(), fragShaderModule, nullptr);
     }
 
-    std::vector<char> Pipeline::readFile(const std::string &filepath) {
-        std::ifstream file{filepath, std::ios::ate | std::ios::binary};
-
-        if (!file.is_open()) {
-            throw std::runtime_error("failed to open file: " + filepath);
-        }
-
-        size_t fileSize = static_cast<size_t>(file.tellg());
-        std::vector<char> buffer(fileSize);
-
-        file.seekg(0);
-        file.read(buffer.data(), fileSize);
-
-        file.close();
-        return buffer;
-    }
-
     void Pipeline::createGraphicsPipeline(
-    const std::string &vertFilePath,
-    const std::string &fragFilePath,
+    const std::vector<char>& vertCode,
+    const std::vector<char>& fragCode,
     const PipelineConfigInfo &configInfo) {
 
-    auto vertCode = readFile(vertFilePath);
-    auto fragCode = readFile(fragFilePath);
+    createShaderModule(vertCode, &vertShaderModule);
+    createShaderModule(fragCode, &fragShaderModule);
 
     assert(configInfo.pipelineLayout != VK_NULL_HANDLE &&
            "Cannot create graphics pipeline:: no pipeline layout provided in configInfo");
     assert(configInfo.renderPass != VK_NULL_HANDLE &&
            "Cannot create graphics pipeline:: no renderPass provided in configInfo");
-
-    createShaderModule(vertCode, &vertShaderModule);
-    createShaderModule(fragCode, &fragShaderModule);
 
     VkPipelineShaderStageCreateInfo shaderStages[2];
     shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -125,7 +103,7 @@ namespace lve {
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
     }
 
-    void Pipeline::dafaultPipelineConfigInfo(PipelineConfigInfo &configInfo) {
+    void Pipeline::defaultPipelineConfigInfo(PipelineConfigInfo &configInfo) {
         configInfo.inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
         configInfo.inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         configInfo.inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
@@ -194,4 +172,5 @@ namespace lve {
         configInfo.dynamicStateInfo.dynamicStateCount = static_cast<uint32_t>(configInfo.dynamicStatesEnables.size());
         configInfo.dynamicStateInfo.flags = 0;
     }
+
 }

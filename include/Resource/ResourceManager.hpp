@@ -5,6 +5,8 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <functional>
+#include <vector>
 
 namespace lve {
 
@@ -16,18 +18,15 @@ public:
     ResourceManager(const ResourceManager&) = delete;
     ResourceManager& operator=(const ResourceManager&) = delete;
 
-    Texture* loadTexture(const std::string& path);
-
-    // Future extension points (same pattern):
-    // Mesh* loadMesh(const std::string& path);
-    // Shader* loadShader(const std::string& path);
-    // Material* loadMaterial(const std::string& path);
+    void loadTexture(const std::string& path, std::function<void(Texture*)> callback);
+    void loadShader(const std::string& path, std::function<void(const std::vector<char>&)> callback);
 
     void garbageCollect();
 
 private:
     Device& device_;
     std::unordered_map<std::string, std::unique_ptr<Texture>> textures_;
+    std::unordered_map<std::string, std::vector<char>> shaders_;
 };
 
 } // namespace lve

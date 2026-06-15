@@ -3,7 +3,7 @@
 #include <NoesisPCH.h>
 #include <vulkan/vulkan.h>
 #include <NsRender/VKFactory.h>
-#include "Vulkan/Swapchain.hpp"
+#include "Core/Constants.hpp"
 
 namespace lve {
     class UiSystem {
@@ -17,16 +17,19 @@ namespace lve {
         void onMouseMove(double x, double y);
         void onMouseButton(int button, int action, int mods, double x, double y);
 
-        void renderOffscreen(VkCommandBuffer cmdBuffer); // New
-        void render(VkCommandBuffer cmdBuffer);      // Renamed from renders
+        void renderOffscreen(VkCommandBuffer cmdBuffer);
+        void render(VkCommandBuffer cmdBuffer, VkRenderPass renderPass);
         void setQuitCallback(std::function<void()> cb) { quitCallback = cb; }
+        void loadXaml(const std::string& xamlPath);
+        Noesis::IView* getView() const { return view; }
     private:
         bool initialized = false;
         Noesis::Ptr<Noesis::IView> view;
         Noesis::Ptr<Noesis::RenderDevice> device;
-        VkRenderPass Pass = nullptr;
         uint64_t frame = 0;
         uint64_t safeFrame;
+        int width_ = 0;
+        int height_ = 0;
         std::function<void()> quitCallback;
     };
 }

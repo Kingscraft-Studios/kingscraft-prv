@@ -7,8 +7,8 @@
 
 namespace lve {
 
-    Texture::Texture(Device &device, const std::string &filepath) : device(device) {
-        createTextureImage(filepath);
+    Texture::Texture(Device &device, const std::vector<char>& fileData) : device(device) {
+        createTextureImage(fileData);
         createTextureImageView();
         createTextureSampler();
     }
@@ -20,10 +20,13 @@ namespace lve {
         vkFreeMemory(device.device(), textureImageMemory, nullptr);
     }
 
-    void Texture::createTextureImage(const std::string &filepath) {
+    void Texture::createTextureImage(const std::vector<char>& fileData) {
         int texWidth, texHeight, texChannels;
 //        stbi_set_flip_vertically_on_load(true); only on 3d Model Rendering
-        stbi_uc *pixels = stbi_load(filepath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        stbi_uc *pixels = stbi_load_from_memory(
+            reinterpret_cast<const stbi_uc*>(fileData.data()),
+            fileData.size(),
+            &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         if (!pixels) {
             throw std::runtime_error("failed to load texture image!");
         }

@@ -61,7 +61,15 @@ namespace lve {
 
     void LoadingScreen::tick(double dt) {}
 
-    void LoadingScreen::render(VkCommandBuffer commandBuffer) {}
+    void LoadingScreen::render(const FrameContext& ctx) {}
+
+    void LoadingScreen::onRenderPassChanged(VkRenderPass renderPass) {
+        renderPass_ = renderPass;
+        if (!vertShaderCode_.empty() && !fragShaderCode_.empty()) {
+            pipeline_.reset();
+            createPipeline(renderPass_);
+        }
+    }
 
     void LoadingScreen::cleanup() {
         pipeline_.reset();

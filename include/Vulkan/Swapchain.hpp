@@ -14,8 +14,6 @@ namespace lve {
 
     class SwapChain {
     public:
-        static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
-
         SwapChain(Device &deviceRef, VkExtent2D windowExtent);
 
         SwapChain(Device &deviceRef, VkExtent2D windowExtent, std::shared_ptr<SwapChain> previous);
@@ -26,9 +24,9 @@ namespace lve {
 
         SwapChain &operator=(const SwapChain &) = delete;
 
-        VkFramebuffer getFrameBuffer(int index) { return swapChainFramebuffers[index]; }
+        VkSwapchainKHR getSwapChain() { return swapChain; }
 
-        VkRenderPass getRenderPass() { return renderPass; }
+        const std::vector<VkImageView>& getImageViews() const { return swapChainImageViews; }
 
         VkImageView getImageView(int index) { return swapChainImageViews[index]; }
 
@@ -46,11 +44,7 @@ namespace lve {
             return static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height);
         }
 
-        VkFormat findDepthFormat();
-
-        VkResult acquireNextImage(uint32_t *imageIndex);
-
-        VkResult submitCommandBuffers(const VkCommandBuffer *buffers, uint32_t *imageIndex);
+        VkResult acquireNextImage(uint32_t *imageIndex, VkSemaphore signalSemaphore);
 
     private:
         void init();
@@ -58,12 +52,6 @@ namespace lve {
         void createSwapChain();
 
         void createImageViews();
-
-        void createRenderPass();
-
-        void createFramebuffers();
-
-        void createSyncObjects();
 
         // Helper functions
         VkSurfaceFormatKHR chooseSwapSurfaceFormat(
@@ -77,8 +65,6 @@ namespace lve {
         VkFormat swapChainImageFormat;
         VkExtent2D swapChainExtent;
 
-        std::vector<VkFramebuffer> swapChainFramebuffers;
-        VkRenderPass renderPass;
         std::vector<VkImage> swapChainImages;
         std::vector<VkImageView> swapChainImageViews;
 
@@ -87,12 +73,6 @@ namespace lve {
 
         VkSwapchainKHR swapChain;
         std::shared_ptr<SwapChain> oldSwapchain;
-
-        std::vector<VkSemaphore> imageAvailableSemaphores;
-        std::vector<VkSemaphore> renderFinishedSemaphores;
-        std::vector<VkFence> inFlightFences;
-        std::vector<VkFence> imagesInFlight;
-        size_t currentFrame = 0;
     };
 
 }  // namespace lve

@@ -2,8 +2,8 @@
 #include <memory>
 #include <thread>
 #include <string>
+#include <vector>
 
-#include "Bus/Mailbox.hpp"
 
 namespace lve {
     class IO {
@@ -14,6 +14,7 @@ namespace lve {
         static IO& Get();
 
         void writeLogFile(const std::string& path, const std::string& text);
+        std::vector<char> readFile(const std::string& path);
 
     private:
 

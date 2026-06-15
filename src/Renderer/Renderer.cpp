@@ -1,11 +1,22 @@
 #include "Renderer/Renderer.hpp"
+#include "Vulkan/RenderPass.hpp"
 #include <stdexcept>
+#include <limits>
 
 namespace lve {
 
 Renderer::Renderer(Device& device, VkExtent2D initialExtent)
     : device_(device), extent_(initialExtent) {
     swapchain_ = std::make_unique<SwapChain>(device_, extent_);
+    syncObjects_ = std::make_unique<SyncObjects>(device_, static_cast<uint32_t>(swapchain_->imageCount()));
+    framebufferManager_ = std::make_unique<FramebufferManager>(device_);
+    presentRenderPass_ = RenderPass::createDefault(device_, swapchain_->getSwapChainImageFormat());
+    activeRenderPass_ = presentRenderPass_->getHandle();
+    framebufferManager_->createFramebuffers(
+        swapchain_->getImageViews(),
+        activeRenderPass_,
+        swapchain_->getSwapChainExtent());
+    imagesInFlight_.resize(swapchain_->imageCount(), VK_NULL_HANDLE);
     createCommandBuffers();
 }
 
@@ -29,11 +40,32 @@ void Renderer::createCommandBuffers() {
     }
 }
 
+void Renderer::setRenderPass(VkRenderPass renderPass) {
+    activeRenderPass_ = renderPass;
+    framebufferManager_->createFramebuffers(
+        swapchain_->getImageViews(),
+        activeRenderPass_,
+        swapchain_->getSwapChainExtent());
+}
+
 void Renderer::recreateSwapChain(VkExtent2D newExtent) {
     extent_ = newExtent;
 
+    vkDeviceWaitIdle(device_.device());
+
     auto oldSwapchain = std::move(swapchain_);
     swapchain_ = std::make_unique<SwapChain>(device_, extent_, std::move(oldSwapchain));
+
+    presentRenderPass_ = RenderPass::createDefault(device_, swapchain_->getSwapChainImageFormat());
+    activeRenderPass_ = presentRenderPass_->getHandle();
+
+    framebufferManager_->destroyFramebuffers();
+    framebufferManager_->createFramebuffers(
+        swapchain_->getImageViews(),
+        activeRenderPass_,
+        swapchain_->getSwapChainExtent());
+
+    imagesInFlight_.resize(swapchain_->imageCount(), VK_NULL_HANDLE);
 
     if (swapchain_->imageCount() != commandBuffers_.size()) {
         vkFreeCommandBuffers(
@@ -44,7 +76,15 @@ void Renderer::recreateSwapChain(VkExtent2D newExtent) {
 }
 
 bool Renderer::beginFrame() {
-    auto result = swapchain_->acquireNextImage(&currentImageIndex_);
+    VkFence inFlightFence = syncObjects_->getInFlight(currentFrame_);
+    vkWaitForFences(
+        device_.device(),
+        1,
+        &inFlightFence,
+        VK_TRUE,
+        std::numeric_limits<uint64_t>::max());
+
+    auto result = swapchain_->acquireNextImage(&currentImageIndex_, syncObjects_->getImageAvailable(currentFrame_));
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         return false;
     }
@@ -90,7 +130,48 @@ bool Renderer::endFrame() {
         throw std::runtime_error("failed to record command buffer!");
     }
 
-    auto result = swapchain_->submitCommandBuffers(&cmd, &currentImageIndex_);
+    if (imagesInFlight_[currentImageIndex_] != VK_NULL_HANDLE) {
+        vkWaitForFences(device_.device(), 1, &imagesInFlight_[currentImageIndex_], VK_TRUE, UINT64_MAX);
+    }
+    imagesInFlight_[currentImageIndex_] = syncObjects_->getInFlight(currentFrame_);
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+    VkSemaphore waitSemaphores[] = {syncObjects_->getImageAvailable(currentFrame_)};
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.pWaitDstStageMask = waitStages;
+
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &cmd;
+
+    VkSemaphore signalSemaphores[] = {syncObjects_->getRenderFinished(currentImageIndex_)};
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemaphores;
+
+    VkFence inFlightFence = syncObjects_->getInFlight(currentFrame_);
+    vkResetFences(device_.device(), 1, &inFlightFence);
+
+    if (vkQueueSubmit(device_.graphicsQueue(), 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
+        throw std::runtime_error("failed to submit draw command buffer!");
+    }
+
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = signalSemaphores;
+
+    VkSwapchainKHR swapChains[] = {swapchain_->getSwapChain()};
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = swapChains;
+    presentInfo.pImageIndices = &currentImageIndex_;
+
+    auto result = vkQueuePresentKHR(device_.presentQueue(), &presentInfo);
+
+    currentFrame_ = (currentFrame_ + 1) % SyncObjects::MAX_FRAMES_IN_FLIGHT;
+
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
         return false;
     }

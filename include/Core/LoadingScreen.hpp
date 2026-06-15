@@ -20,8 +20,9 @@ namespace lve {
 
         void init() override;
         void tick(double dt) override;
-        void render(VkCommandBuffer commandBuffer) override;
+        void render(const FrameContext& ctx) override;
         void cleanup() override;
+        void onRenderPassChanged(VkRenderPass renderPass) override;
 
     private:
         void createPipelineLayout();

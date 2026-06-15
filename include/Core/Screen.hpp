@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
+#include "Core/FrameContext.hpp"
 
 namespace lve {
 
@@ -10,8 +10,10 @@ namespace lve {
 
         virtual void init() = 0;
         virtual void tick(double dt) = 0;
-        virtual void render(VkCommandBuffer commandBuffer) = 0;
+        virtual void render(const FrameContext& ctx) = 0;
         virtual void cleanup() = 0;
+
+        virtual void onRenderPassChanged(VkRenderPass) {}
     };
 
 } // namespace lve

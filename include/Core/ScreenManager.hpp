@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Screen.hpp"
+#include "Core/FrameContext.hpp"
 #include <memory>
 
 namespace lve {
@@ -19,9 +20,10 @@ namespace lve {
         Screen* getCurrent() { return currentScreen_.get(); }
 
         void tick(double dt) { if (currentScreen_) currentScreen_->tick(dt); }
-        void render(VkCommandBuffer cmd) { if (currentScreen_) currentScreen_->render(cmd); }
+        void render(const FrameContext& ctx) { if (currentScreen_) currentScreen_->render(ctx); }
         void cleanup() { if (currentScreen_) { currentScreen_->cleanup(); currentScreen_.reset(); } }
         bool hasScreen() const { return currentScreen_ != nullptr; }
+        void notifyRenderPassChanged(VkRenderPass rp) { if (currentScreen_) currentScreen_->onRenderPassChanged(rp); }
 
     private:
         std::unique_ptr<Screen> currentScreen_;

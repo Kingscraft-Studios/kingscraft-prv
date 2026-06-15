@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Device.hpp"
-#include <string>
 #include <vector>
 
 namespace lve {
@@ -37,8 +36,8 @@ namespace lve {
     public:
         Pipeline(
                 Device &device,
-                const std::string &vertFilePath,
-                const std::string &fragFilePath,
+                const std::vector<char>& vertCode,
+                const std::vector<char>& fragCode,
                 const PipelineConfigInfo configInfo);
 
         ~Pipeline();
@@ -49,12 +48,10 @@ namespace lve {
 
         void bind(VkCommandBuffer commandBuffer);
 
-        static void dafaultPipelineConfigInfo(PipelineConfigInfo &configInfo);
+        static void defaultPipelineConfigInfo(PipelineConfigInfo &configInfo);
 
     private:
-        static std::vector<char> readFile(const std::string &filepath);
-
-        void createGraphicsPipeline(const std::string &vertFilePath, const std::string &fragFilePath,
+        void createGraphicsPipeline(const std::vector<char>& vertCode, const std::vector<char>& fragCode,
                                     const PipelineConfigInfo &configInfo);
 
 

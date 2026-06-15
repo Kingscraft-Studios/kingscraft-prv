@@ -5,7 +5,7 @@
 #include <atomic>
 
 #include "Bus/Mailbox.hpp"
-#include "Renderer.hpp"
+#include "Threads/Renderer.hpp"
 
 namespace lve {
 
@@ -25,7 +25,7 @@ namespace lve {
         std::atomic<bool> running_{true};
         std::shared_ptr<Mailbox> mailbox_;
         std::thread rendererThread_;
-        Renderer renderer_;
+        RenderThread renderer_;
 
         static std::unique_ptr<Engine> instance_;
     };

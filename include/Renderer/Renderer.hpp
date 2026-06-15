@@ -2,9 +2,13 @@
 
 #include "Vulkan/Device.hpp"
 #include "Vulkan/Swapchain.hpp"
+#include "Vulkan/SyncObjects.hpp"
+#include "Vulkan/FramebufferManager.hpp"
 #include <memory>
 #include <vector>
 #include <functional>
+
+namespace lve { class RenderPass; }
 
 namespace lve {
 
@@ -35,10 +39,17 @@ public:
 
     VkCommandBuffer getActiveCommandBuffer() const { return commandBuffers_[currentImageIndex_]; }
     VkExtent2D getExtent() const { return swapchain_->getSwapChainExtent(); }
-    VkRenderPass getSwapChainRenderPass() const { return swapchain_->getRenderPass(); }
-    VkFramebuffer getCurrentFramebuffer() const { return swapchain_->getFrameBuffer(currentImageIndex_); }
+    VkFramebuffer getCurrentFramebuffer() const { return framebufferManager_->getFramebuffer(currentImageIndex_); }
     uint32_t getCurrentImageIndex() const { return currentImageIndex_; }
     Device& getDevice() { return device_; }
+
+    VkFormat getSwapChainImageFormat() const { return swapchain_->getSwapChainImageFormat(); }
+    uint32_t getSwapChainImageCount() const { return static_cast<uint32_t>(swapchain_->imageCount()); }
+    SwapChain& getSwapChain() { return *swapchain_; }
+
+    VkRenderPass getRenderPass() const { return activeRenderPass_; }
+    uint32_t getFrameIndex() const { return currentFrame_; }
+    void setRenderPass(VkRenderPass renderPass);
 
 private:
     void createCommandBuffers();
@@ -46,7 +57,13 @@ private:
     Device& device_;
     VkExtent2D extent_;
     std::unique_ptr<SwapChain> swapchain_;
+    std::unique_ptr<SyncObjects> syncObjects_;
+    std::unique_ptr<FramebufferManager> framebufferManager_;
+    std::unique_ptr<RenderPass> presentRenderPass_;
+    VkRenderPass activeRenderPass_ = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> commandBuffers_;
+    std::vector<VkFence> imagesInFlight_;
+    uint32_t currentFrame_ = 0;
     uint32_t currentImageIndex_ = 0;
 };
 

@@ -7,6 +7,7 @@
 #include "stb_image.h"
 #include "Bus/BusUtil.hpp"
 #include "Bus/Message.hpp"
+#include "Threads/IO.hpp"
 #include "Threads/Logger.hpp"
 
 namespace lve {
@@ -27,11 +28,14 @@ namespace lve {
 
         window = glfwCreateWindow(width, height, windowName.c_str(), nullptr, nullptr);
 
-        //TODO: make it so it uses a Shared Class instead of Inline
         GLFWimage icon[1];
         int channels;
 
-        icon[0].pixels = stbi_load("resources/textures/logo/Kingscraft-Logo.png", &icon[0].width, &icon[0].height, &channels, 4);
+        auto iconData = IO::Get().readFile("resources/textures/logo/Kingscraft-Logo.png");
+        icon[0].pixels = stbi_load_from_memory(
+            reinterpret_cast<const stbi_uc*>(iconData.data()),
+            iconData.size(),
+            &icon[0].width, &icon[0].height, &channels, 4);
 
         if (icon[0].pixels) {
             glfwSetWindowIcon(window, 1, icon);

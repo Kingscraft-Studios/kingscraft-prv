@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <mutex>
 #include <string>
 #include <functional>
 #include <iostream>
@@ -29,6 +30,7 @@ namespace lve {
         void log(LogLevel level, ThreadName sender, std::string data);
 
     private:
+        std::mutex mutex_;
         std::string createLogFileName();
         std::string buildLogLine(LogLevel level, ThreadName caller, const std::string& data);
 

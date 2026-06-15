@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include <GLFW/glfw3.h>
 #include "Bus/BusUtil.hpp"
 #include "NsApp/LocalFontProvider.h"
 #include "Threads/Logger.hpp"
@@ -13,6 +14,8 @@ namespace lve {
 
     void UiSystem::init(int width, int height, const NoesisApp::VKFactory::InstanceInfo& vkinfo,
                         VkRenderPass renderPass) {
+        width_ = width;
+        height_ = height;
         Noesis::GUI::SetLogHandler([](const char*, uint32_t, uint32_t level, const char* channel, const char* message) {
             LogLevel levelStr;
 
@@ -32,7 +35,6 @@ namespace lve {
         initialized = true;
 
         device = NoesisApp::VKFactory::CreateDevice(true, vkinfo);
-        Pass = renderPass;
 
         // TODO: use cache .bin instead of raw .xaml! Validation steps: Store hash of original XAML inside .bin and try parse bin as 2 safety nets
         // TODO: For Vulkan Do not forget to wrap the cache in a header with at least a Hash, Version and Magic
@@ -55,6 +57,22 @@ namespace lve {
 
         view->SetSize(width, height);
 
+        view->GetRenderer()->Init(device);
+    }
+
+    void UiSystem::loadXaml(const std::string& xamlPath) {
+        if (!initialized || !device) return;
+
+        if (view) {
+            view->GetRenderer()->Shutdown();
+            view.Reset();
+        }
+
+        auto xaml = Noesis::GUI::LoadXaml<Noesis::FrameworkElement>(xamlPath.c_str());
+        view = Noesis::GUI::CreateView(xaml);
+        view->Activate();
+        view->SetFlags(Noesis::RenderFlags_PPAA | Noesis::RenderFlags_LCD);
+        view->SetSize(width_, height_);
         view->GetRenderer()->Init(device);
     }
 
@@ -115,8 +133,8 @@ namespace lve {
         if (!view || !device) return;
 
         // Update safeFrame dynamically every frame
-        if (frame >= SwapChain::MAX_FRAMES_IN_FLIGHT) {
-            safeFrame = frame - SwapChain::MAX_FRAMES_IN_FLIGHT;
+        if (frame >= lve::MAX_FRAMES_IN_FLIGHT) {
+            safeFrame = frame - lve::MAX_FRAMES_IN_FLIGHT;
         }
         else {
             safeFrame = 0;
@@ -132,11 +150,11 @@ namespace lve {
         renderer->RenderOffscreen();
     }
 
-    void UiSystem::render(VkCommandBuffer cmdBuffer) {
+    void UiSystem::render(VkCommandBuffer cmdBuffer, VkRenderPass renderPass) {
         if (!view || !device) return;
 
         // Tell Noesis which RenderPass we are currently inside
-        NoesisApp::VKFactory::SetRenderPass(device, Pass, 1);
+        NoesisApp::VKFactory::SetRenderPass(device, renderPass, 1);
 
         // THIS MUST BE CALLED INSIDE vkCmdBeginRenderPass
         view->GetRenderer()->Render();

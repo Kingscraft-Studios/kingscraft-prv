@@ -26,6 +26,7 @@ namespace lve {
     }
 
     void Logger::log(LogLevel level, ThreadName caller, std::string data) {
+        std::lock_guard<std::mutex> lock(mutex_);
 
         std::string line = buildLogLine(level, caller, data);
 

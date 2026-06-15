@@ -1,0 +1,60 @@
+#include "Utils/MessageBus.hpp"
+
+static std::unique_ptr<MessageBus> instance = nullptr;
+
+void MessageBus::Init() {
+    if (!instance)
+        instance = std::unique_ptr<MessageBus>(new MessageBus());
+}
+
+void MessageBus::Shutdown() {
+    instance.reset();
+}
+
+MessageBus& MessageBus::Get() {
+    return *instance;
+}
+
+void MessageBus::subscribe(ThreadName name, std::shared_ptr<Mailbox> mailbox) {
+    std::unique_lock lock(rwMutex_);
+    subscribers_[name] = std::move(mailbox);
+}
+
+void MessageBus::unsubscribe(ThreadName name) {
+    std::unique_lock lock(rwMutex_);
+    subscribers_.erase(name);
+}
+
+bool MessageBus::send(ThreadName target, Message msg) {
+    std::shared_lock lock(rwMutex_);
+    auto it = subscribers_.find(target);
+    if (it == subscribers_.end())
+        return false;
+    auto mailbox = it->second.lock();
+    if (!mailbox)
+        return false;
+    mailbox->push(std::move(msg));
+    return true;
+}
+
+bool MessageBus::send(ThreadName target, std::function<void()> payload) {
+    Message msg{
+        .sender = ThreadName::Main,
+        .target = target,
+        .payload = std::move(payload)
+    };
+    return send(target, std::move(msg));
+}
+
+void MessageBus::signalQuit() {
+    {
+        std::lock_guard lock(quitMutex_);
+        quitting_ = true;
+    }
+    quitCV_.notify_one();
+}
+
+void MessageBus::waitForQuit() {
+    std::unique_lock lock(quitMutex_);
+    quitCV_.wait(lock, [&]() { return quitting_; });
+}

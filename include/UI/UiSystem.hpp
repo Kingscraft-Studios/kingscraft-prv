@@ -5,6 +5,10 @@
 #include <NsRender/VKFactory.h>
 #include "Core/Constants.hpp"
 
+#include <functional>
+#include <string>
+#include <unordered_map>
+
 namespace lve {
     class UiSystem {
     public:
@@ -16,13 +20,17 @@ namespace lve {
         void resize(int width, int height);
         void onMouseMove(double x, double y);
         void onMouseButton(int button, int action, int mods, double x, double y);
+        void onKey(int key, int action);
+        void onChar(unsigned int codepoint);
 
         void renderOffscreen(VkCommandBuffer cmdBuffer);
         void render(VkCommandBuffer cmdBuffer, VkRenderPass renderPass);
-        void setQuitCallback(std::function<void()> cb) { quitCallback = cb; }
+        void registerButtonHandler(std::string name, std::function<void()> handler);
         void loadXaml(const std::string& xamlPath);
         Noesis::IView* getView() const { return view; }
     private:
+        void wireButtons(Noesis::FrameworkElement* xaml);
+
         bool initialized = false;
         Noesis::Ptr<Noesis::IView> view;
         Noesis::Ptr<Noesis::RenderDevice> device;
@@ -30,6 +38,6 @@ namespace lve {
         uint64_t safeFrame;
         int width_ = 0;
         int height_ = 0;
-        std::function<void()> quitCallback;
+        std::unordered_map<std::string, std::function<void()>> buttonHandlers_;
     };
 }

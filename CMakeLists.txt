@@ -8,11 +8,15 @@ add_definitions(-DGLFW_STATIC)
 
 set(NOESIS_DIR ${CMAKE_SOURCE_DIR}/libs/NoesisGUI)
 
+# Project Include
 include_directories(include)
 include_directories(libs/glfw/include)
 include_directories(libs/glm)
 include_directories(libs/vulkan/include)
 include_directories(libs/stb)
+include_directories(libs/FastNoiseLite)
+
+# Noises Include
 include_directories(${NOESIS_DIR}/Include)
 include_directories(${NOESIS_DIR}/Src/Packages/Render/VKRenderDevice/Include)
 include_directories(${NOESIS_DIR}/Src/Packages/Render/VKRenderContext/Src)
@@ -22,9 +26,11 @@ include_directories(${NOESIS_DIR}/Src/Packages/App/Providers/Src)
 
 add_subdirectory(libs/glfw)
 
-# Your sources
+# Project Sources
 file(GLOB_RECURSE SOURCE_FILES src/*.cpp)
 file(GLOB_RECURSE HEADER_FILES include/*.hpp)
+
+#Noesis
 file(GLOB_RECURSE NOESIS_VK_SOURCES
         ${NOESIS_DIR}/Src/Packages/Render/VKRenderDevice/Src/*.cpp
         ${NOESIS_DIR}/Src/Packages/Render/VKRenderContext/Src/*.cpp

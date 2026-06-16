@@ -155,7 +155,7 @@
         </Grid>
 
         <StackPanel Grid.Row="1" VerticalAlignment="Bottom" HorizontalAlignment="Left">
-            <Button Content="ENTER WORLD" Style="{StaticResource MenuButtonStyle}"/>
+            <Button x:Name="EnterWorldButton" Content="ENTER WORLD" Style="{StaticResource MenuButtonStyle}"/>
             <Button Content="OPTIONS" Style="{StaticResource MenuButtonStyle}"/>
             <Button x:Name="QuitButton" Content="QUIT GAME" Style="{StaticResource MenuButtonStyle}"/>
         </StackPanel>

@@ -1,7 +1,9 @@
 #include <iostream>
+#include <memory>
 
 #include <GLFW/glfw3.h>
 #include "Bus/BusUtil.hpp"
+#include "Core/KeyCodes.hpp"
 #include "NsApp/LocalFontProvider.h"
 #include "Threads/Logger.hpp"
 #include "UI/NoesisXamlProvider.hpp"
@@ -47,13 +49,7 @@ namespace lve {
         view->Activate();
         view->SetFlags(Noesis::RenderFlags_PPAA | Noesis::RenderFlags_LCD);
 
-        Noesis::Button* quitBtn = xaml->FindName<Noesis::Button>("QuitButton");
-
-        if (quitBtn) {
-            quitBtn->Click() += [this](Noesis::BaseComponent*, const Noesis::RoutedEventArgs&) {
-                if (quitCallback) quitCallback();
-            };
-        }
+        wireButtons(xaml);
 
         view->SetSize(width, height);
 
@@ -95,6 +91,22 @@ namespace lve {
         initialized = false;
     }
 
+    void UiSystem::registerButtonHandler(std::string name, std::function<void()> handler) {
+        buttonHandlers_[std::move(name)] = std::move(handler);
+    }
+
+    void UiSystem::wireButtons(Noesis::FrameworkElement* xaml) {
+        for (auto& [name, handler] : buttonHandlers_) {
+            Noesis::Button* btn = xaml->FindName<Noesis::Button>(name.c_str());
+            if (btn) {
+                auto shared = std::make_shared<std::function<void()>>(handler);
+                btn->Click() += [shared](Noesis::BaseComponent*, const Noesis::RoutedEventArgs&) {
+                    if (*shared) (*shared)();
+                };
+            }
+        }
+    }
+
     void UiSystem::onMouseMove(double x, double y) {
         if (!view) return;
 
@@ -115,6 +127,21 @@ namespace lve {
         else if (action == GLFW_RELEASE) {
             view->MouseButtonUp((float)x, (float)y, nButton);
         }
+    }
+
+    void UiSystem::onKey(int key, int action) {
+        if (!view) return;
+        Noesis::Key nk = glfwKeyToNoesis(key);
+        if (nk == Noesis::Key_None) return;
+        if (action == GLFW_PRESS || action == GLFW_REPEAT)
+            view->KeyDown(nk);
+        else if (action == GLFW_RELEASE)
+            view->KeyUp(nk);
+    }
+
+    void UiSystem::onChar(unsigned int codepoint) {
+        if (!view) return;
+        view->Char(codepoint);
     }
 
     void UiSystem::update(double time) {

@@ -34,13 +34,15 @@ namespace lve {
         void processInput();
         void toggleFullscreen();
 
-        // FIX: Added function signatures to std::function
         using MouseMovementCallback = std::function<void(double, double)>;
         using MouseButtonCallback = std::function<void(int, int, int)>;
+        using KeyCallback = std::function<void(int key, int scancode, int action, int mods)>;
+        using CharCallback = std::function<void(unsigned int codepoint)>;
 
-        // FIX: Assign the callbacks to the private members
         void setMouseMoveCallback(MouseMovementCallback cb) { mouseMovementCallback = std::move(cb); }
         void setMouseButtonCallback(MouseButtonCallback cb) { mouseButtonCallback = std::move(cb); }
+        void setKeyCallback(KeyCallback cb) { keyCallback = std::move(cb); }
+        void setCharCallback(CharCallback cb) { charCallback = std::move(cb); }
 
         void setFullscreenToggleCallback(std::function<void()> callback) {
             fullscreenToggleCallback = std::move(callback);
@@ -79,6 +81,8 @@ namespace lve {
 
         MouseMovementCallback mouseMovementCallback;
         MouseButtonCallback mouseButtonCallback;
+        KeyCallback keyCallback;
+        CharCallback charCallback;
 
         double lastX = 0, lastY = 0;
     };

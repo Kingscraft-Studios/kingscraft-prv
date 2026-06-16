@@ -1,5 +1,6 @@
 #include "Vulkan/App.hpp"
 #include "Core/LoadingScreen.hpp"
+#include "Core/WorldScreen.hpp"
 
 #include <cassert>
 #include <chrono>
@@ -10,14 +11,22 @@ namespace lve {
 
     App::App() {
 
-        window.setFullscreenToggleCallback([this]() {
-            requestSwapchainRecreate = true;
-        });
-
         resourceManager = std::make_unique<ResourceManager>(device);
         renderer = std::make_unique<Renderer>(device, window.getExtent());
 
         descriptorManager_ = std::make_unique<DescriptorManager>(device);
+
+        keybinds_ = std::make_unique<KeyBindHandler>();
+        keybinds_->setWindow(window.getGLFWWindow());
+
+        keybinds_->onPress({Key::F11}, [this]() {
+            window.toggleFullscreen();
+            requestSwapchainRecreate = true;
+        });
+
+        keybinds_->onPress({Key::ESCAPE}, [this]() {
+            glfwSetWindowShouldClose(window.getGLFWWindow(), GLFW_TRUE);
+        });
 
         uiSystem = std::make_unique<UiSystem>();
 
@@ -32,8 +41,28 @@ namespace lve {
             uiSystem->onMouseButton(button, action, mods, x, y);
         });
 
-        uiSystem->setQuitCallback([this]() {
+        window.setKeyCallback([this](int key, int scancode, int action, int mods) {
+            keybinds_->onKeyEvent(key, scancode, action, mods);
+        });
+
+        window.setCharCallback([this](unsigned int codepoint) {
+            keybinds_->onChar(codepoint);
+        });
+
+        keybinds_->setNoesisKeyCallback([this](int key, int action) {
+            uiSystem->onKey(key, action);
+        });
+
+        keybinds_->setNoesisCharCallback([this](unsigned int codepoint) {
+            uiSystem->onChar(codepoint);
+        });
+
+        uiSystem->registerButtonHandler("QuitButton", [this]() {
             glfwSetWindowShouldClose(window.getGLFWWindow(), GLFW_TRUE);
+        });
+
+        uiSystem->registerButtonHandler("EnterWorldButton", [this]() {
+            screenManager->switchTo<WorldScreen>(device);
         });
 
         QueueFamilyIndices indices = device.findPhysicalQueueFamilies();
@@ -51,7 +80,7 @@ namespace lve {
 
         screenManager = std::make_unique<ScreenManager>();
         screenManager->switchTo<LoadingScreen>(device, *descriptorManager_, *resourceManager,
-                                                renderer->getRenderPass(), *uiSystem);
+                                                renderer->getRenderPass(), *uiSystem, keybinds_.get());
     }
 
     App::~App() {
@@ -64,6 +93,7 @@ namespace lve {
 
     void App::tick() {
         glfwPollEvents();
+        keybinds_->update();
         window.processInput();
 
         auto currentExtent = window.getExtent();

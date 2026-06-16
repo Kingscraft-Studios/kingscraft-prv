@@ -75,6 +75,20 @@ namespace lve {
         }
     });
 
+        glfwSetKeyCallback(window, [](GLFWwindow* w, int key, int scancode, int action, int mods) {
+            auto win = static_cast<Window*>(glfwGetWindowUserPointer(w));
+            if (win && win->keyCallback) {
+                win->keyCallback(key, scancode, action, mods);
+            }
+        });
+
+        glfwSetCharCallback(window, [](GLFWwindow* w, unsigned int codepoint) {
+            auto win = static_cast<Window*>(glfwGetWindowUserPointer(w));
+            if (win && win->charCallback) {
+                win->charCallback(codepoint);
+            }
+        });
+
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
     }
 
@@ -117,20 +131,7 @@ namespace lve {
     }
 
     void Window::processInput() {
-        static bool f11PressedLastFrame = false;
-
-        bool isF11Pressed = glfwGetKey(window, GLFW_KEY_F11) == GLFW_PRESS;
-
-        if (isF11Pressed && !f11PressedLastFrame) {
-            toggleFullscreen();
-
-            // Only call once when F11 is newly pressed
-            if (fullscreenToggleCallback) {
-                fullscreenToggleCallback();
-            }
-        }
-
-        f11PressedLastFrame = isF11Pressed;
+        // Input is now handled by KeyBindHandler
     }
 
 

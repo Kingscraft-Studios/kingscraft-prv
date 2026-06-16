@@ -8,6 +8,8 @@
 #include "Renderer/Renderer.hpp"
 #include "Resource/ResourceManager.hpp"
 #include "Core/ScreenManager.hpp"
+#include "Core/KeyCodes.hpp"
+#include "Core/KeyBindHandler.hpp"
 #include <memory>
 
 
@@ -47,6 +49,7 @@ namespace lve {
         std::unique_ptr<ResourceManager> resourceManager;
         std::unique_ptr<UiSystem> uiSystem;
         std::unique_ptr<ScreenManager> screenManager;
+        std::unique_ptr<KeyBindHandler> keybinds_;
         bool requestSwapchainRecreate = false;
         VkExtent2D lastExtent{0, 0};
         RenderState renderState = RenderState::Running;

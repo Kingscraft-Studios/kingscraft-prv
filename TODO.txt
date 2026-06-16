@@ -1,0 +1,12 @@
+For a minimal WorldScreen, the data flow would be:
+Noise (FastNoise / Perlin)
+    ↓
+Chunk data (3D array of block types, stored CPU-side)
+    ↓
+Mesher (greedy mesh / naive surface extraction)
+    ↓
+Vertex buffer + Index buffer (VkBuffer, uploaded via staging)
+    ↓
+Pipeline (bind pipeline + descriptor + buffers → draw indexed)
+    ↓
+FrameContext.cmd (recorded in Screen::render())

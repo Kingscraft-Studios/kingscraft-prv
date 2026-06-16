@@ -5,10 +5,10 @@ namespace lve {
 
     LoadingScreen::LoadingScreen(Device& device, DescriptorManager& descriptorManager,
                                  ResourceManager& resourceManager, VkRenderPass renderPass,
-                                 UiSystem& uiSystem)
+                                 UiSystem& uiSystem, KeyBindHandler* keybinds)
         : device_(device), descriptorManager_(descriptorManager),
           resourceManager_(resourceManager), renderPass_(renderPass),
-          uiSystem_(uiSystem) {}
+          uiSystem_(uiSystem), keybinds_(keybinds) {}
 
     LoadingScreen::~LoadingScreen() {
         cleanup();

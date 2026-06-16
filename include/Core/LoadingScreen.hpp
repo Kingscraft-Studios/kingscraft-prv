@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Screen.hpp"
+#include "Core/KeyBindHandler.hpp"
 #include "Vulkan/Pipeline.hpp"
 #include "Vulkan/Device.hpp"
 #include "Vulkan/DescriptorManager.hpp"
@@ -15,7 +16,7 @@ namespace lve {
     public:
         LoadingScreen(Device& device, DescriptorManager& descriptorManager,
                       ResourceManager& resourceManager, VkRenderPass renderPass,
-                      UiSystem& uiSystem);
+                      UiSystem& uiSystem, KeyBindHandler* keybinds);
         ~LoadingScreen() override;
 
         void init() override;
@@ -33,6 +34,7 @@ namespace lve {
         ResourceManager& resourceManager_;
         VkRenderPass renderPass_;
         UiSystem& uiSystem_;
+        KeyBindHandler* keybinds_ = nullptr;
 
         VkPipelineLayout pipelineLayout_ = VK_NULL_HANDLE;
         VkDescriptorSetLayout descriptorSetLayout_ = VK_NULL_HANDLE;

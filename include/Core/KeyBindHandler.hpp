@@ -21,12 +21,12 @@ namespace lve {
         void onKeyEvent(int key, int scancode, int action, int mods) {
             if (key < 0 || key > GLFW_KEY_LAST) return;
             currKeys_[key] = (action == GLFW_PRESS || action == GLFW_REPEAT);
-            if (noesisKeyCallback_)
+            if (noesisKeyCallback_ && noesisInputEnabled_)
                 noesisKeyCallback_(key, action);
         }
 
         void onChar(unsigned int codepoint) {
-            if (noesisCharCallback_)
+            if (noesisCharCallback_ && noesisInputEnabled_)
                 noesisCharCallback_(codepoint);
         }
 
@@ -62,6 +62,7 @@ namespace lve {
 
         void setNoesisKeyCallback(NoesisKeyCallback cb) { noesisKeyCallback_ = std::move(cb); }
         void setNoesisCharCallback(NoesisCharCallback cb) { noesisCharCallback_ = std::move(cb); }
+        void setNoesisInputEnabled(bool enabled) { noesisInputEnabled_ = enabled; }
 
         void clear() { bindings_.clear(); prevSatisfied_.clear(); }
 
@@ -106,6 +107,7 @@ namespace lve {
         std::vector<bool> prevSatisfied_;
         NoesisKeyCallback noesisKeyCallback_;
         NoesisCharCallback noesisCharCallback_;
+        bool noesisInputEnabled_ = true;
     };
 
 } // namespace lve

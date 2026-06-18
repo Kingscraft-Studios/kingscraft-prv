@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/FrameContext.hpp"
+#include <vector>
 
 namespace lve {
 
@@ -14,6 +15,7 @@ namespace lve {
         virtual void cleanup() = 0;
 
         virtual void onRenderPassChanged(VkRenderPass) {}
+        virtual void onSwapChainRecreated(VkExtent2D extent, const std::vector<VkImageView>& swapChainImageViews, VkFormat swapChainImageFormat) {}
     };
 
 } // namespace lve

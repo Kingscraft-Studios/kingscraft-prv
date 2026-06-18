@@ -62,7 +62,7 @@ namespace lve {
         });
 
         uiSystem->registerButtonHandler("EnterWorldButton", [this]() {
-            screenManager->switchTo<WorldScreen>(device);
+            screenManager->switchTo<WorldScreen>(device, *resourceManager, *keybinds_, window, renderer->getExtent(), renderer->getSwapChainImageViews(), renderer->getSwapChainImageFormat());
         });
 
         QueueFamilyIndices indices = device.findPhysicalQueueFamilies();
@@ -110,7 +110,18 @@ namespace lve {
         }
 
         if (renderState == RenderState::Running) {
-            screenManager->tick(currentExtent.width > 0 && currentExtent.height > 0 ? glfwGetTime() : 0.0);
+            double currentTime = glfwGetTime();
+            double dt = currentTime - prevTime_;
+            prevTime_ = currentTime;
+
+            if (dt > 0.25) dt = 0.25;
+
+            tickAccumulator_ += dt;
+            while (tickAccumulator_ >= TICK_INTERVAL) {
+                screenManager->tick(TICK_INTERVAL);
+                tickAccumulator_ -= TICK_INTERVAL;
+            }
+
             drawFrame();
         }
     }
@@ -140,6 +151,7 @@ namespace lve {
 
         renderer->recreateSwapChain(extent);
         screenManager->notifyRenderPassChanged(renderer->getRenderPass());
+        screenManager->notifySwapChainRecreated(extent, renderer->getSwapChainImageViews(), renderer->getSwapChainImageFormat());
     }
 
 
@@ -153,12 +165,14 @@ namespace lve {
         }
 
         double currentTime = glfwGetTime();
-        uiSystem->update(currentTime);
 
         VkCommandBuffer cmd = renderer->getActiveCommandBuffer();
         auto extent = renderer->getExtent();
 
-        uiSystem->renderOffscreen(cmd);
+        if (!dynamic_cast<WorldScreen*>(screenManager->getCurrent())) {
+            uiSystem->update(currentTime);
+            uiSystem->renderOffscreen(cmd);
+        }
 
         FrameContext frameCtx{};
         frameCtx.cmd = cmd;
@@ -166,21 +180,39 @@ namespace lve {
         frameCtx.extent = extent;
         frameCtx.dt = currentTime;
         frameCtx.frameIndex = renderer->getFrameIndex();
+        frameCtx.imageIndex = renderer->getCurrentImageIndex();
 
-        RenderPassBegin mainPass{};
-        mainPass.renderPass = frameCtx.renderPass;
-        mainPass.framebuffer = renderer->getCurrentFramebuffer();
-        mainPass.renderArea = {{0, 0}, extent};
-        mainPass.viewport = {0.0f, 0.0f, static_cast<float>(extent.width), static_cast<float>(extent.height), 0.0f, 1.0f};
-        mainPass.scissor = {{0, 0}, extent};
-        mainPass.clearValues = {
-            {{0.1f, 0.1f, 0.1f, 1.0f}}
-        };
+        if (auto* ws = dynamic_cast<WorldScreen*>(screenManager->getCurrent())) {
+            RenderPassBegin worldPass{};
+            worldPass.renderPass = ws->getWorldRenderPass();
+            worldPass.framebuffer = ws->getFramebuffer(frameCtx.imageIndex);
+            worldPass.renderArea = {{0, 0}, extent};
+            worldPass.viewport = {0.0f, 0.0f, static_cast<float>(extent.width), static_cast<float>(extent.height), 0.0f, 1.0f};
+            worldPass.scissor = {{0, 0}, extent};
+            worldPass.clearValues = {
+                {{0.4f, 0.6f, 0.9f, 1.0f}},
+                {1.0f, 0}
+            };
 
-        renderer->executeRenderPass(mainPass, [this, frameCtx](VkCommandBuffer cb) {
-            screenManager->render(frameCtx);
-            uiSystem->render(cb, frameCtx.renderPass);
-        });
+            renderer->executeRenderPass(worldPass, [this, frameCtx](VkCommandBuffer cb) {
+                screenManager->render(frameCtx);
+            });
+        } else {
+            RenderPassBegin mainPass{};
+            mainPass.renderPass = frameCtx.renderPass;
+            mainPass.framebuffer = renderer->getCurrentFramebuffer();
+            mainPass.renderArea = {{0, 0}, extent};
+            mainPass.viewport = {0.0f, 0.0f, static_cast<float>(extent.width), static_cast<float>(extent.height), 0.0f, 1.0f};
+            mainPass.scissor = {{0, 0}, extent};
+            mainPass.clearValues = {
+                {{0.1f, 0.1f, 0.1f, 1.0f}}
+            };
+
+            renderer->executeRenderPass(mainPass, [this, frameCtx](VkCommandBuffer cb) {
+                screenManager->render(frameCtx);
+                uiSystem->render(cb, frameCtx.renderPass);
+            });
+        }
 
         if (!renderer->endFrame()) {
             window.resetWindowResizedFlag();

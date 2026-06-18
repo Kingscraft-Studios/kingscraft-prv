@@ -50,9 +50,14 @@ namespace lve {
         std::unique_ptr<UiSystem> uiSystem;
         std::unique_ptr<ScreenManager> screenManager;
         std::unique_ptr<KeyBindHandler> keybinds_;
+        static constexpr double TICK_RATE = 100.0;
+        static constexpr double TICK_INTERVAL = 1.0 / TICK_RATE;
+
         bool requestSwapchainRecreate = false;
         VkExtent2D lastExtent{0, 0};
         RenderState renderState = RenderState::Running;
+        double prevTime_ = 0.0;
+        double tickAccumulator_ = 0.0;
     };
 
 }  // namespace lve

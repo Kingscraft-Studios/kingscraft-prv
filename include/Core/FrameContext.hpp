@@ -11,6 +11,7 @@ struct FrameContext {
 
     double dt = 0.0;
     uint32_t frameIndex = 0;
+    uint32_t imageIndex = 0;
 };
 
 } // namespace lve

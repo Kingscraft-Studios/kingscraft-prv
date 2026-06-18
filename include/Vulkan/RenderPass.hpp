@@ -32,6 +32,7 @@ namespace lve {
         VkRenderPass getHandle() const { return renderPass_; }
 
         static std::unique_ptr<RenderPass> createDefault(Device& device, VkFormat colorFormat);
+        static std::unique_ptr<RenderPass> createWithDepth(Device& device, VkFormat colorFormat, VkFormat depthFormat);
 
     private:
         Device& device_;

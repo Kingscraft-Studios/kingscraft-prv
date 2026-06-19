@@ -47,8 +47,8 @@ namespace lve {
                                  ThreadName caller,
                                  const std::string& data) {
         return StringBuilder::build(
-            "[", TimeUtil::uptimeSeconds(), "] ",
-            "[", logLevelToString(level), "] ",
+            "[", TimeUtil::uptimeSeconds(), " ",
+            logLevelToString(level), "]: ",
             "[", threadToString(caller), "] ",
             data
         );

@@ -51,7 +51,7 @@ private:
         {
             { "App.xaml", App_xaml },
             { "Resources.xaml", Resources_xaml },
-            { "MainWindow.xaml", MainWindow_xaml },
+            { "MainMenu.xaml", MainWindow_xaml },
             { "Sounds/WaterDropSmall.mp3", WaterDropSmall_mp3 }
         };
 

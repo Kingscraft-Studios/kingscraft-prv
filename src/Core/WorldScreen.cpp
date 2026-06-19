@@ -1,4 +1,5 @@
 #include "Core/WorldScreen.hpp"
+#include "Renderer/Renderer.hpp"
 #include <array>
 #include <iostream>
 #include <stdexcept>
@@ -150,6 +151,15 @@ namespace lve {
 
         createDepthResources(extent_);
         createFramebuffers(swapChainImageViews_, extent_);
+    }
+
+    FrameRenderInfo WorldScreen::getFrameRenderInfo(const Renderer&, uint32_t imageIndex) const {
+        return {
+            worldRenderPass_->getHandle(),
+            framebuffers_[imageIndex],
+            {{{0.4f, 0.6f, 0.9f, 1.0f}}, {1.0f, 0}},
+            false
+        };
     }
 
     void WorldScreen::createPipelineLayout() {

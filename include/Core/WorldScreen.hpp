@@ -33,8 +33,7 @@ namespace lve {
         void onRenderPassChanged(VkRenderPass renderPass) override;
         void onSwapChainRecreated(VkExtent2D extent, const std::vector<VkImageView>& swapChainImageViews, VkFormat swapChainImageFormat) override;
 
-        VkRenderPass getWorldRenderPass() const { return worldRenderPass_->getHandle(); }
-        VkFramebuffer getFramebuffer(uint32_t imageIndex) const { return framebuffers_[imageIndex]; }
+        FrameRenderInfo getFrameRenderInfo(const Renderer& renderer, uint32_t imageIndex) const override;
 
     private:
         VkFormat findDepthFormat();

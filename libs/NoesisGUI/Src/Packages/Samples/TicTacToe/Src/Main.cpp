@@ -48,7 +48,7 @@ private:
         EmbeddedXaml xamls[] = 
         {
             { "App.xaml", App_xaml },
-            { "MainWindow.xaml", MainWindow_xaml },
+            { "MainMenu.xaml", MainWindow_xaml },
             { "Resources.xaml", Resources_xaml },
             { "Sounds/NoughtEffect.mp3", NoughtEffect_mp3 },
             { "Sounds/CrossEffect.mp3", CrossEffect_mp3 },

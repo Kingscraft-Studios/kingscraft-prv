@@ -175,7 +175,7 @@ public:
         EmbeddedXaml xamls[] = 
         {
             { "App.xaml", App_xaml },
-            { "MainWindow.xaml", MainWindow_xaml },
+            { "MainMenu.xaml", MainWindow_xaml },
             { "Content.xaml", ArrayRef<uint8_t>((uint8_t*)Content_xaml, sizeof(Content_xaml) - 1) }
         };
 

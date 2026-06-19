@@ -256,7 +256,7 @@ public:
 private:
     void InitializeComponent()
     {
-        Noesis::GUI::LoadComponent(this, "MainWindow.xaml");
+        Noesis::GUI::LoadComponent(this, "MainMenu.xaml");
     }
 
     void OnInitialized(BaseComponent*, const EventArgs&)
@@ -285,7 +285,7 @@ private:
         EmbeddedXaml xamls[] = 
         {
             { "App.xaml", App_xaml },
-            { "MainWindow.xaml", MainWindow_xaml }
+            { "MainMenu.xaml", MainWindow_xaml }
         };
 
         return *new EmbeddedXamlProvider(xamls);

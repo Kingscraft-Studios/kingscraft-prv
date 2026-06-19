@@ -54,7 +54,7 @@ private:
         EmbeddedXaml xamls[] = 
         {
             { "App.xaml", App_xaml },
-            { "MainWindow.xaml", MainWindow_xaml },
+            { "MainMenu.xaml", MainWindow_xaml },
             { "Resources.xaml", Resources_xaml },
             { "AnimatedNumber.xaml", AnimatedNumber_xaml }
         };

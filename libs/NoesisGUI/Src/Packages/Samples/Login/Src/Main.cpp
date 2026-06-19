@@ -42,7 +42,7 @@ private:
         EmbeddedXaml xamls[] = 
         {
             { "App.xaml", App_xaml },
-            { "MainWindow.xaml", MainWindow_xaml },
+            { "MainMenu.xaml", MainWindow_xaml },
             { "Resources.xaml", Resources_xaml },
             { "Login.mp3", Login_mp3 },
             { "Fail.mp3", Fail_mp3 }

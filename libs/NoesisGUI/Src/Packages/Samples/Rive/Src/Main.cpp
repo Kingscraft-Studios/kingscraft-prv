@@ -64,7 +64,7 @@ private:
         EmbeddedXaml xamls[] = 
         {
             { "App.xaml", App_xaml },
-            { "MainWindow.xaml", MainWindow_xaml },
+            { "MainMenu.xaml", MainWindow_xaml },
             { "background.riv", background_riv },
             { "leaves-tl.riv", leaves_tl_riv },
             { "leaves-tr.riv", leaves_tr_riv },

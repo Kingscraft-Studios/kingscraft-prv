@@ -88,7 +88,7 @@ private:
         EmbeddedXaml xamls[] = 
         {
             { "App.xaml", App_xaml },
-            { "MainWindow.xaml", MainWindow_xaml },
+            { "MainMenu.xaml", MainWindow_xaml },
             { "Resources.xaml", Resources_xaml },
             { "Language-en.xaml", Language_en_xaml },
             { "Language-fr.xaml", Language_fr_xaml },

@@ -43,7 +43,7 @@ private:
         {
             { "App.xaml", App_xaml },
             { "Resources.xaml", Resources_xaml },
-            { "MainWindow.xaml", MainWindow_xaml },
+            { "MainMenu.xaml", MainWindow_xaml },
             { "AudioSlide.mp3", AudioSlide_mp3 },
             { "AudioClick.mp3", AudioClick_mp3 }
         };

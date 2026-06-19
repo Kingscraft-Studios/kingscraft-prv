@@ -180,7 +180,7 @@ public:
 private:
     void InitializeComponent()
     {
-        Noesis::GUI::LoadComponent(this, "MainWindow.xaml");
+        Noesis::GUI::LoadComponent(this, "MainMenu.xaml");
     }
 
     bool ConnectField(BaseComponent* object, const char* name) override
@@ -436,7 +436,7 @@ private:
         EmbeddedXaml xamls[] = 
         {
             { "App.xaml", App_xaml },
-            { "MainWindow.xaml", MainWindow_xaml },
+            { "MainMenu.xaml", MainWindow_xaml },
             { "ColorSelector.xaml", ColorSelector_xaml },
             { "Resources.xaml", Resources_xaml }
         };

@@ -1,8 +1,6 @@
 #include "Vulkan/App.hpp"
-#include "Core/LoadingScreen.hpp"
+#include "Core/MainMenu.hpp"
 #include "Core/WorldScreen.hpp"
-
-#include <cassert>
 #include <chrono>
 
 #include "NsRender/VKFactory.h"
@@ -10,25 +8,12 @@
 namespace lve {
 
     App::App() {
-
-        resourceManager = std::make_unique<ResourceManager>(device);
-        renderer = std::make_unique<Renderer>(device, window.getExtent());
-
-        descriptorManager_ = std::make_unique<DescriptorManager>(device);
-
-        keybinds_ = std::make_unique<KeyBindHandler>();
         keybinds_->setWindow(window.getGLFWWindow());
 
         keybinds_->onPress({Key::F11}, [this]() {
             window.toggleFullscreen();
             requestSwapchainRecreate = true;
         });
-
-        keybinds_->onPress({Key::ESCAPE}, [this]() {
-            glfwSetWindowShouldClose(window.getGLFWWindow(), GLFW_TRUE);
-        });
-
-        uiSystem = std::make_unique<UiSystem>();
 
         window.setMouseMoveCallback([this](double x, double y) {
             uiSystem->onMouseMove(x, y);
@@ -57,15 +42,14 @@ namespace lve {
             uiSystem->onChar(codepoint);
         });
 
-        uiSystem->registerButtonHandler("QuitButton", [this]() {
+        uiSystem->registerButtonHandler(BTN_QUIT_GAME, [this]() {
             glfwSetWindowShouldClose(window.getGLFWWindow(), GLFW_TRUE);
         });
 
-        uiSystem->registerButtonHandler("EnterWorldButton", [this]() {
-            screenManager->switchTo<WorldScreen>(device, *resourceManager, *keybinds_, window, renderer->getExtent(), renderer->getSwapChainImageViews(), renderer->getSwapChainImageFormat());
+        uiSystem->registerButtonHandler(BTN_ENTER_WORLD, [this]() {
+            screenManager->switchTo<WorldScreen>(device, *resourceManager, *keybinds_, window,
+                renderer->getExtent(), renderer->getSwapChainImageViews(), renderer->getSwapChainImageFormat());
         });
-
-        QueueFamilyIndices indices = device.findPhysicalQueueFamilies();
 
         NoesisApp::VKFactory::InstanceInfo info{};
         info.instance = device.getInstance();
@@ -78,9 +62,7 @@ namespace lve {
 
         uiSystem->init(window.getExtent().width, window.getExtent().height, info, renderer->getRenderPass());
 
-        screenManager = std::make_unique<ScreenManager>();
-        screenManager->switchTo<LoadingScreen>(device, *descriptorManager_, *resourceManager,
-                                                renderer->getRenderPass(), *uiSystem, keybinds_.get());
+        screenManager->switchTo<MainMenu>(renderer->getRenderPass(), *uiSystem);
     }
 
     App::~App() {
@@ -165,54 +147,36 @@ namespace lve {
         }
 
         double currentTime = glfwGetTime();
-
         VkCommandBuffer cmd = renderer->getActiveCommandBuffer();
-        auto extent = renderer->getExtent();
+        VkExtent2D extent = renderer->getExtent();
+        uint32_t imageIndex = renderer->getCurrentImageIndex();
 
-        if (!dynamic_cast<WorldScreen*>(screenManager->getCurrent())) {
+        auto info = screenManager->getCurrent()->getFrameRenderInfo(*renderer, imageIndex);
+
+        if (info.uiEnabled) {
             uiSystem->update(currentTime);
             uiSystem->renderOffscreen(cmd);
         }
 
         FrameContext frameCtx{};
         frameCtx.cmd = cmd;
-        frameCtx.renderPass = renderer->getRenderPass();
+        frameCtx.renderPass = info.renderPass;
         frameCtx.extent = extent;
         frameCtx.dt = currentTime;
         frameCtx.frameIndex = renderer->getFrameIndex();
-        frameCtx.imageIndex = renderer->getCurrentImageIndex();
+        frameCtx.imageIndex = imageIndex;
 
-        if (auto* ws = dynamic_cast<WorldScreen*>(screenManager->getCurrent())) {
-            RenderPassBegin worldPass{};
-            worldPass.renderPass = ws->getWorldRenderPass();
-            worldPass.framebuffer = ws->getFramebuffer(frameCtx.imageIndex);
-            worldPass.renderArea = {{0, 0}, extent};
-            worldPass.viewport = {0.0f, 0.0f, static_cast<float>(extent.width), static_cast<float>(extent.height), 0.0f, 1.0f};
-            worldPass.scissor = {{0, 0}, extent};
-            worldPass.clearValues = {
-                {{0.4f, 0.6f, 0.9f, 1.0f}},
-                {1.0f, 0}
-            };
+        RenderPassBegin pass{};
+        pass.renderPass = info.renderPass;
+        pass.framebuffer = info.framebuffer;
+        pass.renderArea = {{0, 0}, extent};
+        pass.viewport = {0.0f, 0.0f, static_cast<float>(extent.width), static_cast<float>(extent.height), 0.0f, 1.0f};
+        pass.scissor = {{0, 0}, extent};
+        pass.clearValues = info.clearValues;
 
-            renderer->executeRenderPass(worldPass, [this, frameCtx](VkCommandBuffer cb) {
-                screenManager->render(frameCtx);
-            });
-        } else {
-            RenderPassBegin mainPass{};
-            mainPass.renderPass = frameCtx.renderPass;
-            mainPass.framebuffer = renderer->getCurrentFramebuffer();
-            mainPass.renderArea = {{0, 0}, extent};
-            mainPass.viewport = {0.0f, 0.0f, static_cast<float>(extent.width), static_cast<float>(extent.height), 0.0f, 1.0f};
-            mainPass.scissor = {{0, 0}, extent};
-            mainPass.clearValues = {
-                {{0.1f, 0.1f, 0.1f, 1.0f}}
-            };
-
-            renderer->executeRenderPass(mainPass, [this, frameCtx](VkCommandBuffer cb) {
-                screenManager->render(frameCtx);
-                uiSystem->render(cb, frameCtx.renderPass);
-            });
-        }
+        renderer->executeRenderPass(pass, [this, frameCtx](VkCommandBuffer cb) {
+            screenManager->render(frameCtx);
+        });
 
         if (!renderer->endFrame()) {
             window.resetWindowResizedFlag();

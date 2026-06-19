@@ -124,7 +124,7 @@ public:
 private:
     void InitializeComponent()
     {
-        GUI::LoadComponent(this, "MainWindow.xaml");
+        GUI::LoadComponent(this, "MainMenu.xaml");
     }
 
     bool ConnectField(BaseComponent* object, const char* name) override
@@ -158,7 +158,7 @@ private:
         EmbeddedXaml xamls[] = 
         {
             { "App.xaml", App_xaml },
-            { "MainWindow.xaml", MainWindow_xaml }
+            { "MainMenu.xaml", MainWindow_xaml }
         };
 
         return *new EmbeddedXamlProvider(xamls);

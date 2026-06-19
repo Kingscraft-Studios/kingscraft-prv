@@ -2,11 +2,11 @@
 #include <memory>
 
 #include <GLFW/glfw3.h>
-#include "Bus/BusUtil.hpp"
 #include "Core/KeyCodes.hpp"
 #include "NsApp/LocalFontProvider.h"
+#include "NsApp/LocalXamlProvider.h"
 #include "Threads/Logger.hpp"
-#include "UI/NoesisXamlProvider.hpp"
+#include "UI/LogHandler.hpp"
 #include "UI/UiSystem.hpp"
 
 namespace lve {
@@ -18,21 +18,7 @@ namespace lve {
                         VkRenderPass renderPass) {
         width_ = width;
         height_ = height;
-        Noesis::GUI::SetLogHandler([](const char*, uint32_t, uint32_t level, const char* channel, const char* message) {
-            LogLevel levelStr;
-
-            if (level == 0) levelStr = LogLevel::ERROR;
-            else if (level == 1) levelStr = LogLevel::DEBUG;
-            else if (level == 2) levelStr = LogLevel::INFO;
-            else if (level == 3) levelStr = LogLevel::WARN;
-            else if (level == 4) levelStr = LogLevel::ERROR;
-
-            std::string msgCopy = message ? message : "";
-
-            BusUtil::structure(SType::Send, ThreadName::Engine, [levelStr, msgCopy]() {
-                Logger::Get().log(levelStr, ThreadName::Renderer, msgCopy);
-            });
-        });
+        Noesis::GUI::SetLogHandler(NoesisLogHandler::handler);
         Noesis::GUI::Init();
         initialized = true;
 
@@ -40,20 +26,10 @@ namespace lve {
 
         // TODO: use cache .bin instead of raw .xaml! Validation steps: Store hash of original XAML inside .bin and try parse bin as 2 safety nets
         // TODO: For Vulkan Do not forget to wrap the cache in a header with at least a Hash, Version and Magic
-        Noesis::GUI::SetXamlProvider(Noesis::MakePtr<XamlProvider>());
+        Noesis::GUI::SetXamlProvider(Noesis::MakePtr<NoesisApp::LocalXamlProvider>("resources/ui"));
         Noesis::GUI::SetFontProvider(Noesis::MakePtr<NoesisApp::LocalFontProvider>("resources/fonts"));
 
-        auto xaml = Noesis::GUI::LoadXaml<Noesis::FrameworkElement>("MainWindow.xaml");
-
-        view = Noesis::GUI::CreateView(xaml);
-        view->Activate();
-        view->SetFlags(Noesis::RenderFlags_PPAA | Noesis::RenderFlags_LCD);
-
-        wireButtons(xaml);
-
-        view->SetSize(width, height);
-
-        view->GetRenderer()->Init(device);
+        loadXaml("MainMenu.xaml");
     }
 
     void UiSystem::loadXaml(const std::string& xamlPath) {
@@ -68,6 +44,7 @@ namespace lve {
         view = Noesis::GUI::CreateView(xaml);
         view->Activate();
         view->SetFlags(Noesis::RenderFlags_PPAA | Noesis::RenderFlags_LCD);
+        wireButtons(xaml);
         view->SetSize(width_, height_);
         view->GetRenderer()->Init(device);
     }
@@ -80,10 +57,6 @@ namespace lve {
             view.Reset();
             device.Reset();
         }
-
-        // 1. Unregister providers to release their internal caches
-        Noesis::GUI::SetXamlProvider(nullptr);
-        Noesis::GUI::SetFontProvider(nullptr);
 
         // 2. Shut down the engine
         Noesis::GUI::Shutdown();

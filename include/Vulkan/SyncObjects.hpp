@@ -3,11 +3,13 @@
 #include "Device.hpp"
 #include <vector>
 
+#include "Core/Constants.hpp"
+
 namespace lve {
 
     class SyncObjects {
     public:
-        static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+        static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = lve::MAX_FRAMES_IN_FLIGHT;
 
         SyncObjects(Device& device, uint32_t swapchainImageCount);
         ~SyncObjects();

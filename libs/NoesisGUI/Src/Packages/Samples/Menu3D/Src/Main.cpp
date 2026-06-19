@@ -72,7 +72,7 @@ private:
         {
             { "App.xaml", App_xaml },
             { "MenuResources.xaml", MenuResources_xaml },
-            { "MainWindow.xaml", MainWindow_xaml },
+            { "MainMenu.xaml", MainWindow_xaml },
             { "MenuDescription.xaml", MenuDescription_xaml },
             { "MainMenu.xaml", MainMenu_xaml },
             { "StartMenu.xaml", StartMenu_xaml },

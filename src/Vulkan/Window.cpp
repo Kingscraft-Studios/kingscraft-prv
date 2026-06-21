@@ -1,14 +1,6 @@
 #include "Vulkan/Window.hpp"
-#include "Vulkan/Texture.hpp"
 
-// std
 #include <stdexcept>
-
-#include "stb_image.h"
-#include "Bus/BusUtil.hpp"
-#include "Bus/Message.hpp"
-#include "Threads/IO.hpp"
-#include "Threads/Logger.hpp"
 
 namespace lve {
 
@@ -28,24 +20,6 @@ namespace lve {
 
         window = glfwCreateWindow(width, height, windowName.c_str(), nullptr, nullptr);
 
-        GLFWimage icon[1];
-        int channels;
-
-        auto iconData = IO::Get().readFile("resources/textures/logo/Kingscraft-Logo.png");
-        icon[0].pixels = stbi_load_from_memory(
-            reinterpret_cast<const stbi_uc*>(iconData.data()),
-            iconData.size(),
-            &icon[0].width, &icon[0].height, &channels, 4);
-
-        if (icon[0].pixels) {
-            glfwSetWindowIcon(window, 1, icon);
-            stbi_image_free(icon[0].pixels);
-        } else {
-            BusUtil::structure(SType::Send, ThreadName::Engine, []() {
-                   Logger::Get().log(LogLevel::WARN, ThreadName::Renderer, "Failed to load window icon!");
-               });
-        }
-
         glfwGetWindowPos(window, &windowedX, &windowedY);
         glfwGetWindowSize(window, &windowedWidth, &windowedHeight);
 
@@ -56,17 +30,17 @@ namespace lve {
         glfwSetWindowUserPointer(window, this);
 
         glfwSetCursorPosCallback(window, [](GLFWwindow* w, double xpos, double ypos) {
-    auto win = static_cast<Window*>(glfwGetWindowUserPointer(w));
-    if (win) {
-        // --- THE MISSING PIECE: Save the position! ---
-        win->lastX = xpos;
-        win->lastY = ypos;
+        auto win = static_cast<Window*>(glfwGetWindowUserPointer(w));
+        if (win) {
+            // --- THE MISSING PIECE: Save the position! ---
+            win->lastX = xpos;
+            win->lastY = ypos;
 
-        if (win->mouseMovementCallback) {
-            win->mouseMovementCallback(xpos, ypos);
+            if (win->mouseMovementCallback) {
+                win->mouseMovementCallback(xpos, ypos);
+            }
         }
-    }
-});
+    });
 
         glfwSetMouseButtonCallback(window, [](GLFWwindow* w, int button, int action, int mods) {
         auto lveWin = static_cast<Window*>(glfwGetWindowUserPointer(w));
@@ -134,6 +108,12 @@ namespace lve {
         // Input is now handled by KeyBindHandler
     }
 
-
+    void Window::setIcon(unsigned char* pixels, int width, int height) {
+        GLFWimage icon[1];
+        icon[0].width = width;
+        icon[0].height = height;
+        icon[0].pixels = pixels;
+        glfwSetWindowIcon(window, 1, icon);
+    }
 
 }  // namespace lve

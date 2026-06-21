@@ -12,6 +12,8 @@
 #include "Core/KeyBindHandler.hpp"
 #include <memory>
 
+#include "Util/TimeUtil.hpp"
+
 
 namespace lve {
 
@@ -24,6 +26,8 @@ namespace lve {
         ~App();
         App(const App &) = delete;
         App &operator=(const App &) = delete;
+
+        static App& get() { return *instance_; }
 
         bool windowShouldClose() const;
         void tick();
@@ -38,9 +42,20 @@ namespace lve {
         void pauseRenderer();
         void resumeRenderer();
 
+        Window& getWindow() { return window; }
+        Device& getDevice() { return device; }
+        Renderer& getRenderer() { return *renderer; }
+        ResourceManager& getResourceManager() { return *resourceManager; }
+        UiSystem& getUiSystem() { return *uiSystem; }
+        ScreenManager& getScreenManager() { return *screenManager; }
+        KeyBindHandler& getKeyBindHandler() { return *keybinds_; }
+        VkExtent2D getExtent() { return window.getExtent(); }
+
     private:
         void drawFrame();
         void recreateSwapChain();
+
+        static App* instance_;
 
         Window window{WIDTH, HEIGHT, "Kingscraft"};
         Device device{window};
@@ -58,7 +73,9 @@ namespace lve {
         VkExtent2D lastExtent{0, 0};
         RenderState renderState = RenderState::Running;
         double prevTime_ = 0.0;
+        double dt_ = 0.0;
         double tickAccumulator_ = 0.0;
+        double currentTime = TimeUtil::getGlfwTime();
     };
 
 }  // namespace lve

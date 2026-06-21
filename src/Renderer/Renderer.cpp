@@ -1,7 +1,7 @@
 #include "Renderer/Renderer.hpp"
-#include "Vulkan/RenderPass.hpp"
 #include <stdexcept>
 #include <limits>
+#include <array>
 
 namespace lve {
 
@@ -11,16 +11,17 @@ Renderer::Renderer(Device& device, VkExtent2D initialExtent)
     syncObjects_ = std::make_unique<SyncObjects>(device_, static_cast<uint32_t>(swapchain_->imageCount()));
     framebufferManager_ = std::make_unique<FramebufferManager>(device_);
     presentRenderPass_ = RenderPass::createDefault(device_, swapchain_->getSwapChainImageFormat());
-    activeRenderPass_ = presentRenderPass_->getHandle();
     framebufferManager_->createFramebuffers(
         swapchain_->getImageViews(),
-        activeRenderPass_,
+        presentRenderPass_->getHandle(),
         swapchain_->getSwapChainExtent());
     imagesInFlight_.resize(swapchain_->imageCount(), VK_NULL_HANDLE);
     createCommandBuffers();
+    createWorldResources();
 }
 
 Renderer::~Renderer() {
+    destroyWorldResources();
     vkFreeCommandBuffers(
         device_.device(), device_.getCommandPool(),
         static_cast<uint32_t>(commandBuffers_.size()), commandBuffers_.data());
@@ -40,29 +41,22 @@ void Renderer::createCommandBuffers() {
     }
 }
 
-void Renderer::setRenderPass(VkRenderPass renderPass) {
-    activeRenderPass_ = renderPass;
-    framebufferManager_->createFramebuffers(
-        swapchain_->getImageViews(),
-        activeRenderPass_,
-        swapchain_->getSwapChainExtent());
-}
-
 void Renderer::recreateSwapChain(VkExtent2D newExtent) {
     extent_ = newExtent;
 
     vkDeviceWaitIdle(device_.device());
 
+    destroyWorldResources();
+
     auto oldSwapchain = std::move(swapchain_);
     swapchain_ = std::make_unique<SwapChain>(device_, extent_, std::move(oldSwapchain));
 
     presentRenderPass_ = RenderPass::createDefault(device_, swapchain_->getSwapChainImageFormat());
-    activeRenderPass_ = presentRenderPass_->getHandle();
 
     framebufferManager_->destroyFramebuffers();
     framebufferManager_->createFramebuffers(
         swapchain_->getImageViews(),
-        activeRenderPass_,
+        presentRenderPass_->getHandle(),
         swapchain_->getSwapChainExtent());
 
     imagesInFlight_.resize(swapchain_->imageCount(), VK_NULL_HANDLE);
@@ -73,6 +67,8 @@ void Renderer::recreateSwapChain(VkExtent2D newExtent) {
             static_cast<uint32_t>(commandBuffers_.size()), commandBuffers_.data());
         createCommandBuffers();
     }
+
+    createWorldResources();
 }
 
 bool Renderer::beginFrame() {
@@ -180,6 +176,116 @@ bool Renderer::endFrame() {
     }
 
     return true;
+}
+
+void Renderer::createWorldResources() {
+    VkFormat depthFormat = device_.findSupportedFormat(
+        {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+    );
+    depthFormat_ = depthFormat;
+
+    worldRenderPass_ = RenderPass::createWithDepth(device_, swapchain_->getSwapChainImageFormat(), depthFormat);
+
+    size_t imageCount = swapchain_->imageCount();
+    const auto& swapChainImageViews = swapchain_->getImageViews();
+    VkExtent2D extent = swapchain_->getSwapChainExtent();
+
+    depthImages_.resize(imageCount);
+    depthImageMemories_.resize(imageCount);
+    depthImageViews_.resize(imageCount);
+    worldFramebuffers_.resize(imageCount);
+
+    for (size_t i = 0; i < imageCount; i++) {
+        VkImageCreateInfo imageInfo{};
+        imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageInfo.extent.width = extent.width;
+        imageInfo.extent.height = extent.height;
+        imageInfo.extent.depth = 1;
+        imageInfo.mipLevels = 1;
+        imageInfo.arrayLayers = 1;
+        imageInfo.format = depthFormat;
+        imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        imageInfo.flags = 0;
+
+        if (vkCreateImage(device_.device(), &imageInfo, nullptr, &depthImages_[i]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create depth image!");
+        }
+
+        VkMemoryRequirements memRequirements;
+        vkGetImageMemoryRequirements(device_.device(), depthImages_[i], &memRequirements);
+
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = device_.findMemoryType(
+            memRequirements.memoryTypeBits,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+        );
+
+        if (vkAllocateMemory(device_.device(), &allocInfo, nullptr, &depthImageMemories_[i]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate depth image memory!");
+        }
+
+        vkBindImageMemory(device_.device(), depthImages_[i], depthImageMemories_[i], 0);
+
+        VkImageViewCreateInfo viewInfo{};
+        viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        viewInfo.image = depthImages_[i];
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.format = depthFormat;
+        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        viewInfo.subresourceRange.baseMipLevel = 0;
+        viewInfo.subresourceRange.levelCount = 1;
+        viewInfo.subresourceRange.baseArrayLayer = 0;
+        viewInfo.subresourceRange.layerCount = 1;
+
+        if (vkCreateImageView(device_.device(), &viewInfo, nullptr, &depthImageViews_[i]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create depth image view!");
+        }
+
+        std::array<VkImageView, 2> attachments = {
+            swapChainImageViews[i],
+            depthImageViews_[i]
+        };
+
+        VkFramebufferCreateInfo fbInfo{};
+        fbInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        fbInfo.renderPass = worldRenderPass_->getHandle();
+        fbInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        fbInfo.pAttachments = attachments.data();
+        fbInfo.width = extent.width;
+        fbInfo.height = extent.height;
+        fbInfo.layers = 1;
+
+        if (vkCreateFramebuffer(device_.device(), &fbInfo, nullptr, &worldFramebuffers_[i]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create world framebuffer!");
+        }
+    }
+}
+
+void Renderer::destroyWorldResources() {
+    worldRenderPass_.reset();
+
+    for (auto fb : worldFramebuffers_) {
+        vkDestroyFramebuffer(device_.device(), fb, nullptr);
+    }
+    worldFramebuffers_.clear();
+
+    for (size_t i = 0; i < depthImageViews_.size(); i++) {
+        vkDestroyImageView(device_.device(), depthImageViews_[i], nullptr);
+        vkDestroyImage(device_.device(), depthImages_[i], nullptr);
+        vkFreeMemory(device_.device(), depthImageMemories_[i], nullptr);
+    }
+    depthImageViews_.clear();
+    depthImages_.clear();
+    depthImageMemories_.clear();
 }
 
 } // namespace lve

@@ -9,6 +9,8 @@
 #include "Bus/Message.hpp"
 #include "Bus/Mailbox.hpp"
 
+namespace lve {
+
 class MessageBus {
 public:
     static void Init();
@@ -53,3 +55,5 @@ private:
     std::condition_variable quitCV_;
     bool quitting_ = false;
 };
+
+}

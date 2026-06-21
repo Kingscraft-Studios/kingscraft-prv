@@ -1,4 +1,4 @@
-#include "../../include/Vulkan/Device.hpp"
+#include "Vulkan/Device.hpp"
 
 // std headers
 #include <cstring>
@@ -6,7 +6,7 @@
 #include <set>
 #include <unordered_set>
 
-#include "Bus/BusUtil.hpp"
+#include "Bus/MessageBus.hpp"
 #include "Threads/Logger.hpp"
 
 namespace lve {
@@ -42,7 +42,7 @@ namespace lve {
 
         std::string line = StringBuilder::build(prefix, "Validation Layer: ", pCallbackData->pMessage);
 
-        BusUtil::structure(SType::Send, ThreadName::Engine, [level, line]() {
+        MessageBus::Get().send(ThreadName::Engine, [level, line]() {
             Logger::Get().log(level, ThreadName::Renderer, line);
         });
 
@@ -144,7 +144,7 @@ namespace lve {
         if (deviceCount == 0) {
             throw std::runtime_error("failed to find GPUs with Vulkan support!");
         }
-        BusUtil::structure(SType::Send, ThreadName::Engine, [deviceCount]() {
+        MessageBus::Get().send(ThreadName::Engine, [deviceCount]() {
             Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, StringBuilder::build("Device Count: ", deviceCount));
         });
         std::vector<VkPhysicalDevice> devices(deviceCount);
@@ -169,7 +169,7 @@ namespace lve {
         //TODO: use VkPhysicalDeviceDriverProperties through the vkGetPhysicalDeviceProperties2
         auto driverVersion = properties.driverVersion;
 
-        BusUtil::structure(SType::Send, ThreadName::Engine, [deviceName, major, minor, patch, driverVersion]() {
+        MessageBus::Get().send(ThreadName::Engine, [deviceName, major, minor, patch, driverVersion]() {
             Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, StringBuilder::build("Selected GPU: ", deviceName));
             Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, StringBuilder::build("Vulkan API: ", major, ".", minor, ".", patch));
             Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, StringBuilder::build("Driver Version: ", driverVersion));

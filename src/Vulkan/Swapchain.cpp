@@ -1,4 +1,4 @@
-#include "../../include/Vulkan/Swapchain.hpp"
+#include "Vulkan/Swapchain.hpp"
 
 // std
 #include <cstring>
@@ -6,7 +6,7 @@
 #include <limits>
 #include <stdexcept>
 
-#include "Bus/BusUtil.hpp"
+#include "Bus/MessageBus.hpp"
 #include "Threads/Logger.hpp"
 
 namespace lve {
@@ -146,14 +146,14 @@ namespace lve {
 
         for (const auto &availablePresentMode : availablePresentModes) {
             if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
-                BusUtil::structure(SType::Send, ThreadName::Engine, []() {
+                MessageBus::Get().send(ThreadName::Engine, []() {
                     Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, "Present Mode: Immediate (V-Sync OFF)");
                 });
                 return availablePresentMode;
             }
         }
 
-        BusUtil::structure(SType::Send, ThreadName::Engine, []() {
+        MessageBus::Get().send(ThreadName::Engine, []() {
                     Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, "Present Mode: FIFO (V-Sync ON)");
                 });
         return VK_PRESENT_MODE_FIFO_KHR;

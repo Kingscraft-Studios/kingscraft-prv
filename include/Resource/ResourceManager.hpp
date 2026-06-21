@@ -20,6 +20,8 @@ public:
 
     void loadTexture(const std::string& path, std::function<void(Texture*)> callback);
     void loadShader(const std::string& path, std::function<void(const std::vector<char>&)> callback);
+    void loadRawImageData(const std::string& path,
+        std::function<void(unsigned char* pixels, int width, int height)> callback);
 
     void garbageCollect();
 

@@ -2,6 +2,8 @@
 #include <sstream>
 #include <string>
 
+namespace lve {
+
 class StringBuilder {
 public:
     template<typename... Args>
@@ -13,3 +15,5 @@ public:
         return ss.str();
     }
 };
+
+}

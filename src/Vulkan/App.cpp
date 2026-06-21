@@ -7,7 +7,11 @@
 
 namespace lve {
 
+    App* App::instance_ = nullptr;
+
     App::App() {
+        instance_ = this;
+        TimeUtil::setGlfwTime(glfwGetTime());
         keybinds_->setWindow(window.getGLFWWindow());
 
         keybinds_->onPress({Key::F11}, [this]() {
@@ -43,13 +47,17 @@ namespace lve {
         });
 
         uiSystem->registerButtonHandler(BTN_QUIT_GAME, [this]() {
-            glfwSetWindowShouldClose(window.getGLFWWindow(), GLFW_TRUE);
+            window.setWindowClose();
         });
 
         uiSystem->registerButtonHandler(BTN_ENTER_WORLD, [this]() {
-            screenManager->switchTo<WorldScreen>(device, *resourceManager, *keybinds_, window,
-                renderer->getExtent(), renderer->getSwapChainImageViews(), renderer->getSwapChainImageFormat());
+            screenManager->switchTo<WorldScreen>(renderer->getExtent());
         });
+
+        resourceManager->loadRawImageData("resources/textures/logo/Kingscraft-Logo.png",
+            [this](unsigned char* pixels, int width, int height) {
+                window.setIcon(pixels, width, height);
+            });
 
         NoesisApp::VKFactory::InstanceInfo info{};
         info.instance = device.getInstance();
@@ -74,6 +82,11 @@ namespace lve {
     }
 
     void App::tick() {
+        currentTime = TimeUtil::getGlfwTime();
+        dt_ = currentTime - prevTime_;
+        prevTime_ = currentTime;
+        if (dt_ > 0.25) dt_ = 0.25;
+
         glfwPollEvents();
         keybinds_->update();
         window.processInput();
@@ -92,13 +105,7 @@ namespace lve {
         }
 
         if (renderState == RenderState::Running) {
-            double currentTime = glfwGetTime();
-            double dt = currentTime - prevTime_;
-            prevTime_ = currentTime;
-
-            if (dt > 0.25) dt = 0.25;
-
-            tickAccumulator_ += dt;
+            tickAccumulator_ += dt_;
             while (tickAccumulator_ >= TICK_INTERVAL) {
                 screenManager->tick(TICK_INTERVAL);
                 tickAccumulator_ -= TICK_INTERVAL;
@@ -133,7 +140,7 @@ namespace lve {
 
         renderer->recreateSwapChain(extent);
         screenManager->notifyRenderPassChanged(renderer->getRenderPass());
-        screenManager->notifySwapChainRecreated(extent, renderer->getSwapChainImageViews(), renderer->getSwapChainImageFormat());
+        screenManager->notifySwapChainRecreated(extent);
     }
 
 
@@ -145,8 +152,6 @@ namespace lve {
             recreateSwapChain();
             return;
         }
-
-        double currentTime = glfwGetTime();
         VkCommandBuffer cmd = renderer->getActiveCommandBuffer();
         VkExtent2D extent = renderer->getExtent();
         uint32_t imageIndex = renderer->getCurrentImageIndex();
@@ -162,7 +167,7 @@ namespace lve {
         frameCtx.cmd = cmd;
         frameCtx.renderPass = info.renderPass;
         frameCtx.extent = extent;
-        frameCtx.dt = currentTime;
+        frameCtx.dt = dt_;
         frameCtx.frameIndex = renderer->getFrameIndex();
         frameCtx.imageIndex = imageIndex;
 

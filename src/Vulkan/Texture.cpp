@@ -1,4 +1,4 @@
-#include "../../include/Vulkan/Texture.hpp"
+#include "Vulkan/Texture.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 

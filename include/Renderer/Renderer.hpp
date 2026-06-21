@@ -4,11 +4,10 @@
 #include "Vulkan/Swapchain.hpp"
 #include "Vulkan/SyncObjects.hpp"
 #include "Vulkan/FramebufferManager.hpp"
+#include "Vulkan/RenderPass.hpp"
 #include <memory>
 #include <vector>
 #include <functional>
-
-namespace lve { class RenderPass; }
 
 namespace lve {
 
@@ -48,12 +47,17 @@ public:
     const std::vector<VkImageView>& getSwapChainImageViews() const { return swapchain_->getImageViews(); }
     SwapChain& getSwapChain() { return *swapchain_; }
 
-    VkRenderPass getRenderPass() const { return activeRenderPass_; }
+    VkRenderPass getRenderPass() const { return presentRenderPass_->getHandle(); }
     uint32_t getFrameIndex() const { return currentFrame_; }
-    void setRenderPass(VkRenderPass renderPass);
+
+    VkRenderPass getWorldRenderPass() const { return worldRenderPass_->getHandle(); }
+    VkFramebuffer getWorldFramebuffer(uint32_t imageIndex) const { return worldFramebuffers_[imageIndex]; }
+    VkFormat getDepthFormat() const { return depthFormat_; }
 
 private:
     void createCommandBuffers();
+    void createWorldResources();
+    void destroyWorldResources();
 
     Device& device_;
     VkExtent2D extent_;
@@ -61,7 +65,14 @@ private:
     std::unique_ptr<SyncObjects> syncObjects_;
     std::unique_ptr<FramebufferManager> framebufferManager_;
     std::unique_ptr<RenderPass> presentRenderPass_;
-    VkRenderPass activeRenderPass_ = VK_NULL_HANDLE;
+
+    VkFormat depthFormat_ = VK_FORMAT_UNDEFINED;
+    std::unique_ptr<RenderPass> worldRenderPass_;
+    std::vector<VkImage> depthImages_;
+    std::vector<VkDeviceMemory> depthImageMemories_;
+    std::vector<VkImageView> depthImageViews_;
+    std::vector<VkFramebuffer> worldFramebuffers_;
+
     std::vector<VkCommandBuffer> commandBuffers_;
     std::vector<VkFence> imagesInFlight_;
     uint32_t currentFrame_ = 0;

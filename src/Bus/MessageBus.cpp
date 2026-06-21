@@ -1,5 +1,7 @@
 #include "Bus/MessageBus.hpp"
 
+namespace lve {
+
 static std::unique_ptr<MessageBus> instance = nullptr;
 
 void MessageBus::Init() {
@@ -57,3 +59,5 @@ void MessageBus::waitForQuit() {
     std::unique_lock lock(quitMutex_);
     quitCV_.wait(lock, [&]() { return quitting_; });
 }
+
+} // namespace lve

@@ -54,6 +54,8 @@ namespace lve {
         // Helper to get last mouse pos for click logic
         double getLastX() const { return lastX; }
         double getLastY() const { return lastY; }
+        void setWindowClose() {glfwSetWindowShouldClose(window, GLFW_TRUE);}
+        void setIcon(unsigned char* pixels, int width, int height);
 
     private:
         static void framebufferResizeCallback(GLFWwindow *window, int width, int height);

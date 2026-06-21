@@ -24,7 +24,7 @@ namespace lve {
         void cleanup() { if (currentScreen_) { currentScreen_->cleanup(); currentScreen_.reset(); } }
         bool hasScreen() const { return currentScreen_ != nullptr; }
         void notifyRenderPassChanged(VkRenderPass rp) { if (currentScreen_) currentScreen_->onRenderPassChanged(rp); }
-        void notifySwapChainRecreated(VkExtent2D extent, const std::vector<VkImageView>& swapChainImageViews, VkFormat swapChainImageFormat) { if (currentScreen_) currentScreen_->onSwapChainRecreated(extent, swapChainImageViews, swapChainImageFormat); }
+        void notifySwapChainRecreated(VkExtent2D extent) { if (currentScreen_) currentScreen_->onSwapChainRecreated(extent); }
 
     private:
         std::unique_ptr<Screen> currentScreen_;

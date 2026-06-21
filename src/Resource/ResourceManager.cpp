@@ -1,6 +1,7 @@
 #include "Resource/ResourceManager.hpp"
 #include "Threads/IO.hpp"
-#include "Bus/BusUtil.hpp"
+#include "Bus/MessageBus.hpp"
+#include "stb_image.h"
 
 namespace lve {
 
@@ -16,8 +17,7 @@ void ResourceManager::loadTexture(const std::string& path,
         return;
     }
 
-    BusUtil::structure<std::vector<char>>(
-        SType::Request,
+    MessageBus::Get().request<std::vector<char>>(
         ThreadName::Engine,
         [path]() { return IO::Get().readFile(path); },
         ThreadName::Renderer,
@@ -38,14 +38,32 @@ void ResourceManager::loadShader(const std::string& path,
         return;
     }
 
-    BusUtil::structure<std::vector<char>>(
-        SType::Request,
+    MessageBus::Get().request<std::vector<char>>(
         ThreadName::Engine,
         [path]() { return IO::Get().readFile(path); },
         ThreadName::Renderer,
         [this, path, callback = std::move(callback)](std::vector<char> data) mutable {
             auto& cached = shaders_[path] = std::move(data);
             if (callback) callback(cached);
+        }
+    );
+}
+
+void ResourceManager::loadRawImageData(const std::string& path,
+    std::function<void(unsigned char* pixels, int width, int height)> callback) {
+    MessageBus::Get().request<std::vector<char>>(
+        ThreadName::Engine,
+        [path]() { return IO::Get().readFile(path); },
+        ThreadName::Renderer,
+        [callback = std::move(callback)](std::vector<char> fileData) mutable {
+            int width, height, channels;
+            unsigned char* pixels = stbi_load_from_memory(
+                reinterpret_cast<const stbi_uc*>(fileData.data()),
+                fileData.size(), &width, &height, &channels, 4);
+            if (pixels) {
+                if (callback) callback(pixels, width, height);
+                stbi_image_free(pixels);
+            }
         }
     );
 }

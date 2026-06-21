@@ -5,6 +5,8 @@
 #include <chrono>
 #include "Bus/Message.hpp"
 
+namespace lve {
+
 class Mailbox {
 public:
     void push(Message msg) {
@@ -13,15 +15,6 @@ public:
             queue.push(std::move(msg));
         }
         cv.notify_one();
-    }
-
-    bool pop(Message& out) {
-        std::unique_lock<std::mutex> lock(mtx);
-        cv.wait(lock, [&]() { return !queue.empty() || stopped; });
-        if (queue.empty()) return false;
-        out = std::move(queue.front());
-        queue.pop();
-        return true;
     }
 
     bool try_pop(Message& out) {
@@ -57,3 +50,5 @@ private:
     std::condition_variable cv;
     bool stopped = false;
 };
+
+}

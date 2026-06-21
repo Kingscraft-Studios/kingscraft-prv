@@ -27,7 +27,7 @@ namespace lve {
         virtual FrameRenderInfo getFrameRenderInfo(const Renderer& renderer, uint32_t imageIndex) const = 0;
 
         virtual void onRenderPassChanged(VkRenderPass) {}
-        virtual void onSwapChainRecreated(VkExtent2D extent, const std::vector<VkImageView>& swapChainImageViews, VkFormat swapChainImageFormat) {}
+        virtual void onSwapChainRecreated(VkExtent2D extent) {}
     };
 
 } // namespace lve

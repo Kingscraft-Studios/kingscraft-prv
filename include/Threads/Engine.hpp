@@ -17,9 +17,12 @@ namespace lve {
         static void Init();
         static void Shutdown();
         static Engine& Get();
+        static Engine& get() { return Get(); }
 
         void run();
         void stop();
+
+        Mailbox& getMailbox() { return *mailbox_; }
 
     private:
         std::atomic<bool> running_{true};

@@ -1,5 +1,5 @@
 #pragma once
-#include "Bus/BusUtil.hpp"
+#include "Bus/MessageBus.hpp"
 #include "Threads/Logger.hpp"
 
 namespace lve {
@@ -15,7 +15,7 @@ namespace lve {
 
             std::string msgCopy = message ? message : "";
 
-            BusUtil::structure(SType::Send, ThreadName::Engine, [levelStr, msgCopy]() {
+            MessageBus::Get().send(ThreadName::Engine, [levelStr, msgCopy]() {
                 Logger::Get().log(levelStr, ThreadName::Renderer, msgCopy);
             });
         }

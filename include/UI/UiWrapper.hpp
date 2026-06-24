@@ -2,21 +2,26 @@
 
 #include <vulkan/vulkan.h>
 
-
+#include "UI/Engine/UiEngine.hpp"
+#include "UI/Elements/UiElement.hpp"
 #include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
-
-class IEngineServices;
+#include <vector>
 
 namespace lve {
 
+    class Device;
+    class DescriptorManager;
+
+
     class UiWrapper {
     public:
+        UiWrapper();
         ~UiWrapper();
 
-        void init();
+        void init(Device& device, DescriptorManager& descriptorManager, VkExtent2D extent);
         void shutdown();
         void update(double deltaTime);
         void resize(int width, int height);
@@ -28,6 +33,9 @@ namespace lve {
 
         void renderOffscreen(VkCommandBuffer cmdBuffer);
         void render(VkCommandBuffer cmdBuffer, VkRenderPass renderPass);
+
+        void addElement(UiElement* element);
+        void removeElement(UiElement* element);
         void registerButtonHandler(std::string name, std::function<void()> handler);
 
     private:
@@ -35,7 +43,12 @@ namespace lve {
         int width_ = 0;
         int height_ = 0;
         uint64_t frameIndex_ = 0;
+
+        std::unique_ptr<UiEngine> engine_;
+        std::vector<UiElement*> elements_;
+
+        VkRenderPass currentRenderPass_ = VK_NULL_HANDLE;
         std::unordered_map<std::string, std::function<void()>> buttonHandlers_;
     };
 
-}
+} // namespace lve

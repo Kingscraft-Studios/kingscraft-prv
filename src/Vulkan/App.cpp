@@ -68,9 +68,9 @@ namespace lve {
             });
 
         // Init new UI engine alongside Noesis
-        uiSystem->init();
+        uiSystem->init(device, *descriptorManager_, renderer->getExtent());
 
-        screenManager->switchTo<MainMenu>(renderer->getRenderPass(), *uiSystem);
+        screenManager->switchTo<MainMenu>(renderer->getRenderPass(), *uiSystem, renderer->getExtent());
 
         VkExtent2D extent = window.getExtent();
         postProcessor_ = std::make_unique<PostProcessing>();

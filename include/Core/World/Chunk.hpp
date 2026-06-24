@@ -11,7 +11,8 @@ namespace lve {
 
     struct ChunkVertex {
         glm::vec3 position;
-        glm::vec3 color;
+        glm::vec2 uv;
+        float texIndex;
 
         static VkVertexInputBindingDescription getBindingDescription() {
             VkVertexInputBindingDescription desc{};
@@ -21,16 +22,20 @@ namespace lve {
             return desc;
         }
 
-        static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() {
-            std::array<VkVertexInputAttributeDescription, 2> desc{};
+        static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
+            std::array<VkVertexInputAttributeDescription, 3> desc{};
             desc[0].binding = 0;
             desc[0].location = 0;
             desc[0].format = VK_FORMAT_R32G32B32_SFLOAT;
             desc[0].offset = offsetof(ChunkVertex, position);
             desc[1].binding = 0;
             desc[1].location = 1;
-            desc[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-            desc[1].offset = offsetof(ChunkVertex, color);
+            desc[1].format = VK_FORMAT_R32G32_SFLOAT;
+            desc[1].offset = offsetof(ChunkVertex, uv);
+            desc[2].binding = 0;
+            desc[2].location = 2;
+            desc[2].format = VK_FORMAT_R32_SFLOAT;
+            desc[2].offset = offsetof(ChunkVertex, texIndex);
             return desc;
         }
     };

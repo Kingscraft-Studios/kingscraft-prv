@@ -4,6 +4,8 @@
 
 namespace lve {
 
+class PostProcessing;
+
 struct FrameContext {
     VkCommandBuffer cmd = VK_NULL_HANDLE;
     VkRenderPass renderPass = VK_NULL_HANDLE;
@@ -12,6 +14,8 @@ struct FrameContext {
     double dt = 0.0;
     uint32_t frameIndex = 0;
     uint32_t imageIndex = 0;
+
+    PostProcessing* postProcessing = nullptr;
 };
 
 } // namespace lve

@@ -1,12 +1,41 @@
-For a minimal WorldScreen, the data flow would be:
-Noise (FastNoise / Perlin)
-    ↓
-Chunk data (3D array of block types, stored CPU-side)
-    ↓
-Mesher (greedy mesh / naive surface extraction)
-    ↓
-Vertex buffer + Index buffer (VkBuffer, uploaded via staging)
-    ↓
-Pipeline (bind pipeline + descriptor + buffers → draw indexed)
-    ↓
-FrameContext.cmd (recorded in Screen::render())
+Multi-Batch Bloom (future):
+- When multiple glowing object types exist (lanterns, lightsabers, etc.)
+  with different blur profiles (sigma/kernelSize), group by profile
+  into batches and run one full bloom pass per batch
+- Each batch needs its own pair of offscreen framebuffers
+- Each batch runs: glow draw -> vertical blur -> horizontal blur + composite
+- Cost per batch: +2 fullscreen triangle draws, +2 offscreen framebuffers
+
+---
+Using Bloom for Blocks / Entities:
+
+Prerequisites per glowing object:
+- A BloomElement with bloomEnabled, emissiveColor, luminosity, radius, intensity, sigma, kernelSize
+- A GlowUniformData with the object's MVP (projection * view * model)
+
+Flow (handled by WorldScreen, called from App::drawFrame):
+  preScene (glow pass) → renderGlow() → draw glowing objects
+     ↓
+  vertical blur on offscreen buffer (automatic)
+     ↓
+  main scene render → scene objects drawn normally
+     ↓
+  postScene → horizontal blur + additive composite over scene
+
+Per entity:
+  struct EntityGlow { BloomElement settings; GlowUniformData ubo; Mesh* mesh; };
+  In renderGlow():
+    Bind glow pipeline (Bloom::getGlowPipeline)
+    Bind scene descriptor set (Bloom::getSceneLayout → your UBO descriptor)
+    For each entity:
+      bloom->updateUniforms(frameIndex, entity.ubo, entity.settings);
+      draw entity.mesh
+
+Per block:
+  Same pattern, but batch blocks with matching BloomElement settings.
+  Use instanced rendering or combine vertices into a single buffer per glow-batch.
+  Call bloom->updateUniforms() once per batch (only the last set takes effect).
+
+Note: updateUniforms() takes one BloomElement per frame; the blur UBO
+(radius/intensity/sigma/kernelSize) is overwritten each call, so batch
+by identical blur profiles if you want distinct settings per object group.

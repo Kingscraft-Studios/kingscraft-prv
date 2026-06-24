@@ -4,8 +4,10 @@
 #include "Vulkan/Device.hpp"
 #include "Vulkan/RenderPass.hpp"
 #include "Vulkan/DescriptorManager.hpp"
-#include "UI/UiSystem.hpp"
+#include "Vulkan/TextureCache.hpp"
+#include "UI/UiWrapper.hpp"
 #include "Renderer/Renderer.hpp"
+#include "Renderer/PostProcessing.hpp"
 #include "Resource/ResourceManager.hpp"
 #include "Core/ScreenManager.hpp"
 #include "Core/KeyCodes.hpp"
@@ -13,7 +15,6 @@
 #include <memory>
 
 #include "Util/TimeUtil.hpp"
-
 
 namespace lve {
 
@@ -46,9 +47,11 @@ namespace lve {
         Device& getDevice() { return device; }
         Renderer& getRenderer() { return *renderer; }
         ResourceManager& getResourceManager() { return *resourceManager; }
-        UiSystem& getUiSystem() { return *uiSystem; }
+        UiWrapper& getUiSystem() { return *uiSystem; }
         ScreenManager& getScreenManager() { return *screenManager; }
         KeyBindHandler& getKeyBindHandler() { return *keybinds_; }
+        PostProcessing& getPostProcessor() { return *postProcessor_; }
+        TextureCache& getTextureCache() { return *textureCache_; }
         VkExtent2D getExtent() { return window.getExtent(); }
 
     private:
@@ -61,8 +64,10 @@ namespace lve {
         Device device{window};
         std::unique_ptr<Renderer> renderer = std::make_unique<Renderer>(device, window.getExtent());
         std::unique_ptr<DescriptorManager> descriptorManager_ = std::make_unique<DescriptorManager>(device);
+        std::unique_ptr<TextureCache> textureCache_ = std::make_unique<TextureCache>(device);
+        std::unique_ptr<PostProcessing> postProcessor_;
         std::unique_ptr<ResourceManager> resourceManager = std::make_unique<ResourceManager>(device);
-        std::unique_ptr<UiSystem> uiSystem = std::make_unique<UiSystem>();
+        std::unique_ptr<UiWrapper> uiSystem = std::make_unique<UiWrapper>();
         std::unique_ptr<ScreenManager> screenManager = std::make_unique<ScreenManager>();
         std::unique_ptr<KeyBindHandler> keybinds_ = std::make_unique<KeyBindHandler>();
         static constexpr double TICK_RATE = 100.0;
@@ -75,7 +80,7 @@ namespace lve {
         double prevTime_ = 0.0;
         double dt_ = 0.0;
         double tickAccumulator_ = 0.0;
-        double currentTime = TimeUtil::getGlfwTime();
+        double currentTime = 0.0;
     };
 
 }  // namespace lve

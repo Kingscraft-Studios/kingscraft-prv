@@ -1,11 +1,11 @@
 #include "Core/MainMenu.hpp"
 
-#include "Core/WorldScreen.hpp"
+#include "Core/World/WorldScreen.hpp"
 #include "Renderer/Renderer.hpp"
 
 namespace lve {
 
-    MainMenu::MainMenu(VkRenderPass renderPass, UiSystem& uiSystem)
+    MainMenu::MainMenu(VkRenderPass renderPass, UiWrapper& uiSystem)
         : renderPass_(renderPass), uiSystem_(uiSystem) {}
 
     FrameRenderInfo MainMenu::getFrameRenderInfo(const Renderer& renderer, uint32_t) const {

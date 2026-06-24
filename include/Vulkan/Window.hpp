@@ -36,11 +36,13 @@ namespace lve {
 
         using MouseMovementCallback = std::function<void(double, double)>;
         using MouseButtonCallback = std::function<void(int, int, int)>;
+        using ScrollCallback = std::function<void(double, double)>;
         using KeyCallback = std::function<void(int key, int scancode, int action, int mods)>;
         using CharCallback = std::function<void(unsigned int codepoint)>;
 
         void setMouseMoveCallback(MouseMovementCallback cb) { mouseMovementCallback = std::move(cb); }
         void setMouseButtonCallback(MouseButtonCallback cb) { mouseButtonCallback = std::move(cb); }
+        void setScrollCallback(ScrollCallback cb) { scrollCallback = std::move(cb); }
         void setKeyCallback(KeyCallback cb) { keyCallback = std::move(cb); }
         void setCharCallback(CharCallback cb) { charCallback = std::move(cb); }
 
@@ -83,6 +85,7 @@ namespace lve {
 
         MouseMovementCallback mouseMovementCallback;
         MouseButtonCallback mouseButtonCallback;
+        ScrollCallback scrollCallback;
         KeyCallback keyCallback;
         CharCallback charCallback;
 

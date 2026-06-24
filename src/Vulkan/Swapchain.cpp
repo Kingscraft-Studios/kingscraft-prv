@@ -8,6 +8,7 @@
 
 #include "Bus/MessageBus.hpp"
 #include "Threads/Logger.hpp"
+#include "Renderer/RendererSettings.hpp"
 
 namespace lve {
 
@@ -144,17 +145,21 @@ namespace lve {
     VkPresentModeKHR SwapChain::chooseSwapPresentMode(
     const std::vector<VkPresentModeKHR> &availablePresentModes) {
 
-        for (const auto &availablePresentMode : availablePresentModes) {
-            if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
-                MessageBus::Get().send(ThreadName::Engine, []() {
-                    Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, "Present Mode: Immediate (V-Sync OFF)");
+        bool vsync = RendererSettings::get().vsync;
+        VkPresentModeKHR preferred = vsync ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
+
+        for (const auto &mode : availablePresentModes) {
+            if (mode == preferred) {
+                MessageBus::Get().send(ThreadName::Engine, [vsync]() {
+                    Logger::Get().log(LogLevel::INFO, ThreadName::Renderer,
+                        vsync ? "Present Mode: FIFO (V-Sync ON)" : "Present Mode: Immediate (V-Sync OFF)");
                 });
-                return availablePresentMode;
+                return mode;
             }
         }
 
         MessageBus::Get().send(ThreadName::Engine, []() {
-                    Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, "Present Mode: FIFO (V-Sync ON)");
+                    Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, "Present Mode: FIFO (V-Sync ON, fallback)");
                 });
         return VK_PRESENT_MODE_FIFO_KHR;
     }

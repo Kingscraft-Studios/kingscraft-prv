@@ -6,6 +6,7 @@
 
 #include "Bus/Mailbox.hpp"
 #include "Threads/Renderer.hpp"
+#include "Threads/ResourceLoader.hpp"
 
 namespace lve {
 
@@ -19,18 +20,21 @@ namespace lve {
         static Engine& Get();
         static Engine& get() { return Get(); }
 
-        void run();
-        void stop();
+    void run();
+    void stop();
 
-        Mailbox& getMailbox() { return *mailbox_; }
+    Mailbox& getMailbox() { return *mailbox_; }
 
-    private:
-        std::atomic<bool> running_{true};
-        std::shared_ptr<Mailbox> mailbox_;
-        std::thread rendererThread_;
-        RenderThread renderer_;
+private:
+    std::atomic<bool> running_{true};
+    std::shared_ptr<Mailbox> mailbox_;
+    std::thread regThread_;
+    std::thread rendererThread_;
+    std::thread resLoaderThread_;
+    RenderThread renderer_;
+    ResourceLoader resourceLoader_;
 
-        static std::unique_ptr<Engine> instance_;
-    };
+    static std::unique_ptr<Engine> instance_;
+};
 
 } // namespace lve

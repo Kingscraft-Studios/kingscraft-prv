@@ -38,6 +38,9 @@ namespace lve {
         }
 
         void setAspectRatio(float aspect) { aspectRatio_ = aspect; }
+        void setFov(float fov) { fov_ = fov; }
+        void setNearPlane(float near) { near_ = near; }
+        void setFarPlane(float far) { far_ = far; }
 
     private:
         void updateVectors() {

@@ -1,4 +1,4 @@
-#include "Core/Chunk.hpp"
+#include "Core/World/Chunk.hpp"
 
 namespace lve {
 

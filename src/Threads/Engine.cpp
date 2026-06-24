@@ -6,12 +6,16 @@
 
 #include <chrono>
 
+#include "Core/Registries.hpp"
+
 namespace lve {
 
     std::unique_ptr<Engine> Engine::instance_ = nullptr;
 
     Engine::~Engine() {
         mailbox_->stop();
+        resourceLoader_.stop();
+        if (resLoaderThread_.joinable()) resLoaderThread_.join();
         if (rendererThread_.joinable()) rendererThread_.join();
     }
 
@@ -39,6 +43,11 @@ namespace lve {
 
         Logger::Get().log(LogLevel::INFO, ThreadName::Engine, "Mailbox subscribed");
 
+        resLoaderThread_ = std::thread([this]() { resourceLoader_.run(); });
+
+        regThread_ = std::thread([]() { Registries::build(); });
+        regThread_.detach();
+
         renderer_.setQuitCallback([this]() { stop(); });
         rendererThread_ = std::thread([this]() { renderer_.run(); });
 
@@ -52,6 +61,9 @@ namespace lve {
 
         Logger::Get().log(LogLevel::INFO, ThreadName::Engine, "Stopping renderer");
         if (rendererThread_.joinable()) rendererThread_.join();
+
+        resourceLoader_.stop();
+        if (resLoaderThread_.joinable()) resLoaderThread_.join();
 
         MessageBus::Get().unsubscribe(ThreadName::Engine);
         Logger::Get().log(LogLevel::INFO, ThreadName::Engine, "Shutting down");

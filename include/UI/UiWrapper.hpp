@@ -1,43 +1,41 @@
 #pragma once
 
-#include <NoesisPCH.h>
 #include <vulkan/vulkan.h>
-#include <NsRender/VKFactory.h>
-#include "Core/Constants.hpp"
+
 
 #include <functional>
+#include <memory>
 #include <string>
 #include <unordered_map>
 
-namespace lve {
-    class UiSystem {
-    public:
-        ~UiSystem();
+class IEngineServices;
 
-        void init(int width, int height, const NoesisApp::VKFactory::InstanceInfo& vkInfo, VkRenderPass renderPass);
+namespace lve {
+
+    class UiWrapper {
+    public:
+        ~UiWrapper();
+
+        void init();
         void shutdown();
-        void update(double time);
+        void update(double deltaTime);
         void resize(int width, int height);
         void onMouseMove(double x, double y);
         void onMouseButton(int button, int action, int mods, double x, double y);
+        void onScroll(double dx, double dy);
         void onKey(int key, int action);
         void onChar(unsigned int codepoint);
 
         void renderOffscreen(VkCommandBuffer cmdBuffer);
         void render(VkCommandBuffer cmdBuffer, VkRenderPass renderPass);
         void registerButtonHandler(std::string name, std::function<void()> handler);
-        void loadXaml(const std::string& xamlPath);
-        Noesis::IView* getView() const { return view; }
-    private:
-        void wireButtons(Noesis::FrameworkElement* xaml);
 
-        bool initialized = false;
-        Noesis::Ptr<Noesis::IView> view;
-        Noesis::Ptr<Noesis::RenderDevice> device;
-        uint64_t frame = 0;
-        uint64_t safeFrame;
+    private:
+        bool initialized_ = false;
         int width_ = 0;
         int height_ = 0;
+        uint64_t frameIndex_ = 0;
         std::unordered_map<std::string, std::function<void()>> buttonHandlers_;
     };
+
 }

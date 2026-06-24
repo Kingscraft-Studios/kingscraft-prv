@@ -1,13 +1,13 @@
 #pragma once
 
 #include "Core/Screen.hpp"
-#include "UI/UiSystem.hpp"
+#include "UI/UiWrapper.hpp"
 
 namespace lve {
 
     class MainMenu : public Screen {
     public:
-        MainMenu(VkRenderPass renderPass, UiSystem& uiSystem);
+        MainMenu(VkRenderPass renderPass, UiWrapper& uiSystem);
 
         void init() override {}
         void tick(double) override {}
@@ -19,7 +19,7 @@ namespace lve {
 
     private:
         VkRenderPass renderPass_;
-        UiSystem& uiSystem_;
+        UiWrapper& uiSystem_;
     };
 
 } // namespace lve

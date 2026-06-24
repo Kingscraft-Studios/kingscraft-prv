@@ -3,11 +3,9 @@
 #include "Core/Screen.hpp"
 #include "Core/Camera.hpp"
 #include "Core/KeyCodes.hpp"
-#include "Core/Chunk.hpp"
-#include "Core/ChunkMesher.hpp"
-#include "Core/TerrainGenerator.hpp"
+#include "Core/World/Chunk.hpp"
+#include "Core/World/World.hpp"
 #include "Vulkan/Pipeline.hpp"
-#include <vector>
 #include <memory>
 #include <glm/glm.hpp>
 
@@ -21,6 +19,7 @@ namespace lve {
         void init() override;
         void tick(double dt) override;
         void render(const FrameContext& ctx) override;
+        void renderGlow(const FrameContext& ctx) override;
         void cleanup() override;
         void onRenderPassChanged(VkRenderPass renderPass) override;
         void onSwapChainRecreated(VkExtent2D extent) override;
@@ -38,8 +37,7 @@ namespace lve {
         std::vector<char> vertShaderCode_;
         std::vector<char> fragShaderCode_;
 
-        TerrainGenerator terrainNoise_;
-        std::vector<Chunk> chunks_;
+        std::unique_ptr<World> world_;
 
         Camera camera_;
         double lastMouseX_ = 0.0;

@@ -15,6 +15,7 @@ namespace lve {
         bool uiEnabled = true;
     };
 
+
     class Screen {
     public:
         virtual ~Screen() = default;
@@ -22,6 +23,7 @@ namespace lve {
         virtual void init() = 0;
         virtual void tick(double dt) = 0;
         virtual void render(const FrameContext& ctx) = 0;
+        virtual void renderGlow(const FrameContext& ctx) {}
         virtual void cleanup() = 0;
 
         virtual FrameRenderInfo getFrameRenderInfo(const Renderer& renderer, uint32_t imageIndex) const = 0;

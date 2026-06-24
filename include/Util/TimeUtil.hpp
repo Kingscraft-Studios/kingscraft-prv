@@ -15,18 +15,10 @@ private:
     inline static TimePoint startTime{};
     inline static bool initialized = false;
 
-    inline static double glfwTime = 0.0;
-
 public:
     static void Init() {
         startTime = Clock::now();
         initialized = true;
-    }
-
-    static void setGlfwTime(const double time) { glfwTime = time; }
-
-    static double getGlfwTime() {
-        return glfwTime;
     }
 
     // raw current time

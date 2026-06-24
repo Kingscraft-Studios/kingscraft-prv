@@ -15,14 +15,7 @@ include_directories(libs/glm)
 include_directories(libs/vulkan/include)
 include_directories(libs/stb)
 include_directories(libs/FastNoiseLite)
-
-# Noises Include
-include_directories(${NOESIS_DIR}/Include)
-include_directories(${NOESIS_DIR}/Src/Packages/Render/VKRenderDevice/Include)
-include_directories(${NOESIS_DIR}/Src/Packages/Render/VKRenderContext/Src)
-include_directories(${NOESIS_DIR}/Src/Packages/Render/RenderContext/Include)
-include_directories(${NOESIS_DIR}/Src/Packages/App/Providers/Include)
-include_directories(${NOESIS_DIR}/Src/Packages/App/Providers/Src)
+include_directories(libs/json)
 
 add_subdirectory(libs/glfw)
 
@@ -30,30 +23,18 @@ add_subdirectory(libs/glfw)
 file(GLOB_RECURSE SOURCE_FILES src/*.cpp)
 file(GLOB_RECURSE HEADER_FILES include/*.hpp)
 
-#Noesis
-file(GLOB_RECURSE NOESIS_VK_SOURCES
-        ${NOESIS_DIR}/Src/Packages/Render/VKRenderDevice/Src/*.cpp
-        ${NOESIS_DIR}/Src/Packages/Render/VKRenderContext/Src/*.cpp
-        ${NOESIS_DIR}/Src/Packages/Render/RenderContext/Src/*.cpp
-        ${NOESIS_DIR}/Src/Packages/App/Providers/Src/*.cpp
-)
-
 add_executable(godscraft
         ${SOURCE_FILES}
         ${HEADER_FILES}
-        ${NOESIS_VK_SOURCES}
 )
 
-target_link_directories(godscraft PRIVATE
-        ${NOESIS_DIR}/Bin/linux_x86_64
-)
+target_link_directories(godscraft PRIVATE)
 
 target_link_libraries(godscraft
         PRIVATE glfw
         PRIVATE vulkan
         PRIVATE pthread
         PRIVATE dl
-        PRIVATE Noesis
 )
 
 add_custom_command(TARGET godscraft POST_BUILD

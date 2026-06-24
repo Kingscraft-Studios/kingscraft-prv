@@ -28,19 +28,24 @@ public:
     void request(ThreadName target, std::function<T()> work,
                  ThreadName replyTo, std::function<void(T)> callback)
     {
-        send(target, [work = std::move(work), replyTo, callback = std::move(callback)]() {
-            if constexpr (std::is_void_v<T>) {
-                work();
-                MessageBus::Get().send(replyTo, [cb = std::move(callback)]() {
-                    cb();
-                });
-            } else {
-                auto result = work();
-                MessageBus::Get().send(replyTo, [cb = std::move(callback), r = std::move(result)]() mutable {
-                    cb(std::move(r));
-                });
+        auto payload = std::make_shared<std::function<void()>>(
+            [work = std::move(work), replyTo, callback = std::move(callback)]() mutable {
+                if constexpr (std::is_void_v<T>) {
+                    work();
+                    MessageBus::Get().send(replyTo, [cb = std::move(callback)]() {
+                        cb();
+                    });
+                } else {
+                    auto result = work();
+                    MessageBus::Get().send(replyTo, [cb = std::move(callback), r = std::move(result)]() mutable {
+                        cb(std::move(r));
+                    });
+                }
             }
-        });
+        );
+        while (!send(target, [payload]() { (*payload)(); })) {
+            std::this_thread::yield();
+        }
     }
 
     void signalQuit();

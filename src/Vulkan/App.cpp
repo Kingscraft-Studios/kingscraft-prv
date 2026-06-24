@@ -1,9 +1,10 @@
 #include "Vulkan/App.hpp"
 #include "Core/MainMenu.hpp"
-#include "Core/WorldScreen.hpp"
+#include "Core/World/WorldScreen.hpp"
+#include "Renderer/Bloom.hpp"
+#include "Renderer/RendererSettings.hpp"
 #include <chrono>
-
-#include "NsRender/VKFactory.h"
+#include <thread>
 
 namespace lve {
 
@@ -11,12 +12,15 @@ namespace lve {
 
     App::App() {
         instance_ = this;
-        TimeUtil::setGlfwTime(glfwGetTime());
         keybinds_->setWindow(window.getGLFWWindow());
 
         keybinds_->onPress({Key::F11}, [this]() {
             window.toggleFullscreen();
             requestSwapchainRecreate = true;
+        });
+
+        keybinds_->onPress({Key::ESCAPE}, [this]() {
+            window.setWindowClose();
         });
 
         window.setMouseMoveCallback([this](double x, double y) {
@@ -28,6 +32,10 @@ namespace lve {
             double y = window.getLastY();
 
             uiSystem->onMouseButton(button, action, mods, x, y);
+        });
+
+        window.setScrollCallback([this](double dx, double dy) {
+            uiSystem->onScroll(dx, dy);
         });
 
         window.setKeyCallback([this](int key, int scancode, int action, int mods) {
@@ -59,18 +67,15 @@ namespace lve {
                 window.setIcon(pixels, width, height);
             });
 
-        NoesisApp::VKFactory::InstanceInfo info{};
-        info.instance = device.getInstance();
-        info.physicalDevice = device.getPhysicalDevice();
-        info.device = device.device();
-        info.pipelineCache = VK_NULL_HANDLE;
-        info.queueFamilyIndex = indices.graphicsFamily;
-        info.vkGetInstanceProcAddr = glfwGetInstanceProcAddress;
-        info.stereoSupport = false;
-
-        uiSystem->init(window.getExtent().width, window.getExtent().height, info, renderer->getRenderPass());
+        // Init new UI engine alongside Noesis
+        uiSystem->init();
 
         screenManager->switchTo<MainMenu>(renderer->getRenderPass(), *uiSystem);
+
+        VkExtent2D extent = window.getExtent();
+        postProcessor_ = std::make_unique<PostProcessing>();
+        auto bloom = std::make_unique<Bloom>(device, extent, renderer->getWorldRenderPass(), *descriptorManager_);
+        postProcessor_->addEffect(std::move(bloom));
     }
 
     App::~App() {
@@ -82,7 +87,7 @@ namespace lve {
     }
 
     void App::tick() {
-        currentTime = TimeUtil::getGlfwTime();
+        currentTime = TimeUtil::uptimeSeconds();
         dt_ = currentTime - prevTime_;
         prevTime_ = currentTime;
         if (dt_ > 0.25) dt_ = 0.25;
@@ -112,6 +117,15 @@ namespace lve {
             }
 
             drawFrame();
+
+            int maxFps = RendererSettings::get().maxFps;
+            if (maxFps > 0) {
+                double frameTime = TimeUtil::uptimeSeconds() - currentTime;
+                double target = 1.0 / maxFps;
+                if (frameTime < target) {
+                    std::this_thread::sleep_for(std::chrono::duration<double>(target - frameTime));
+                }
+            }
         }
     }
 
@@ -141,12 +155,15 @@ namespace lve {
         renderer->recreateSwapChain(extent);
         screenManager->notifyRenderPassChanged(renderer->getRenderPass());
         screenManager->notifySwapChainRecreated(extent);
+        auto* bloom = static_cast<Bloom*>(postProcessor_->getEffect("bloom"));
+        if (bloom) bloom->recreate(extent, renderer->getWorldRenderPass());
     }
 
 
     void App::drawFrame() {
-        if (renderState != RenderState::Running)
+        if (renderState != RenderState::Running) {
             return;
+        }
 
         if (!renderer->beginFrame()) {
             recreateSwapChain();
@@ -159,7 +176,7 @@ namespace lve {
         auto info = screenManager->getCurrent()->getFrameRenderInfo(*renderer, imageIndex);
 
         if (info.uiEnabled) {
-            uiSystem->update(currentTime);
+            uiSystem->update(dt_);
             uiSystem->renderOffscreen(cmd);
         }
 
@@ -170,6 +187,14 @@ namespace lve {
         frameCtx.dt = dt_;
         frameCtx.frameIndex = renderer->getFrameIndex();
         frameCtx.imageIndex = imageIndex;
+        frameCtx.postProcessing = postProcessor_.get();
+
+        // Pre-scene effects (glow passes, downsampling, etc.)
+        if (!info.uiEnabled) {
+            postProcessor_->preScene(frameCtx, [this](const FrameContext& ctx) {
+                screenManager->getCurrent()->renderGlow(ctx);
+            });
+        }
 
         RenderPassBegin pass{};
         pass.renderPass = info.renderPass;
@@ -179,8 +204,13 @@ namespace lve {
         pass.scissor = {{0, 0}, extent};
         pass.clearValues = info.clearValues;
 
-        renderer->executeRenderPass(pass, [this, frameCtx](VkCommandBuffer cb) {
+        renderer->executeRenderPass(pass, [this, frameCtx, info](VkCommandBuffer cb) {
             screenManager->render(frameCtx);
+
+            // Post-scene effects (composite, etc.)
+            if (!info.uiEnabled) {
+                postProcessor_->postScene(frameCtx);
+            }
         });
 
         if (!renderer->endFrame()) {

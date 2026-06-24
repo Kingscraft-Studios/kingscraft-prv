@@ -5,7 +5,9 @@ namespace lve {
 
 enum class ThreadName {
     Engine,
-    Renderer
+    Renderer,
+    Resource,
+    Registration
 };
 
 struct Message {

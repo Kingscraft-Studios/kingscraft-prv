@@ -49,6 +49,12 @@ namespace lve {
         }
     });
 
+        glfwSetScrollCallback(window, [](GLFWwindow* w, double xoffset, double yoffset) {
+            auto win = static_cast<Window*>(glfwGetWindowUserPointer(w));
+            if (win && win->scrollCallback)
+                win->scrollCallback(xoffset, yoffset);
+        });
+
         glfwSetKeyCallback(window, [](GLFWwindow* w, int key, int scancode, int action, int mods) {
             auto win = static_cast<Window*>(glfwGetWindowUserPointer(w));
             if (win && win->keyCallback) {

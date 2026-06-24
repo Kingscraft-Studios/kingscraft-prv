@@ -72,12 +72,12 @@ namespace lve {
         auto& keybinds = App::get().getKeyBindHandler();
         auto& window = App::get().getWindow();
 
-        if (keybinds.isDown(Key::W)) camera_.moveForward(speed);
-        if (keybinds.isDown(Key::S)) camera_.moveForward(-speed);
-        if (keybinds.isDown(Key::A)) camera_.moveRight(-speed);
-        if (keybinds.isDown(Key::D)) camera_.moveRight(speed);
-        if (keybinds.isDown(Key::SPACE)) camera_.moveUp(speed);
-        if (keybinds.isDown(Key::LEFT_SHIFT)) camera_.moveUp(-speed);
+        if (keybinds.isDown(Keys::W)) camera_.moveForward(speed);
+        if (keybinds.isDown(Keys::S)) camera_.moveForward(-speed);
+        if (keybinds.isDown(Keys::A)) camera_.moveRight(-speed);
+        if (keybinds.isDown(Keys::D)) camera_.moveRight(speed);
+        if (keybinds.isDown(Keys::SPACE)) camera_.moveUp(speed);
+        if (keybinds.isDown(Keys::LEFT_SHIFT)) camera_.moveUp(-speed);
 
         double mx = window.getLastX();
         double my = window.getLastY();

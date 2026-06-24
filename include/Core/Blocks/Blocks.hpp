@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Registry.hpp"
-#include "Core/Key.hpp"
+#include "Core/RegistryKey.hpp"
 #include "Block.hpp"
 
 namespace lve {

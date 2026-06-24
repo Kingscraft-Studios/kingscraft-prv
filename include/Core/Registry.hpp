@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-#include "Core/Key.hpp"
+#include "Core/RegistryKey.hpp"
 
 namespace lve {
 

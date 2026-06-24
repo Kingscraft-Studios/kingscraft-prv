@@ -414,7 +414,7 @@ void Bloom::updateFrameDescriptor(uint32_t i) {
 
 void Bloom::createBlurPipeline(VkRenderPass renderPass, uint32_t blurdirection, VkPipeline& outPipeline) {
     auto vertMod = [&]() {
-        auto code = readFile("resources/shaders/bloom/PostProcess/gaussblur.vert.spv");
+        auto code = readFile("resources/shaders/PostProcess/bloom/gaussblur.vert.spv");
         VkShaderModuleCreateInfo ci{};
         ci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         ci.codeSize = code.size();

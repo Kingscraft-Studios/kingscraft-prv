@@ -2,7 +2,7 @@
 
 #include <GLFW/glfw3.h>
 
-namespace lve::Key {
+namespace lve::Keys {
 
     constexpr int SPACE   = GLFW_KEY_SPACE;
     constexpr int APOSTROPHE = GLFW_KEY_APOSTROPHE;

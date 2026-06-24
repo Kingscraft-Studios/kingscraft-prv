@@ -10,7 +10,7 @@
 #include "Renderer/PostProcessing.hpp"
 #include "Resource/ResourceManager.hpp"
 #include "Core/ScreenManager.hpp"
-#include "Core/KeyCodes.hpp"
+#include "Core/Keys.hpp"
 #include "Core/KeyBindHandler.hpp"
 #include <memory>
 

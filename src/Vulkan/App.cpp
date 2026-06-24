@@ -14,12 +14,12 @@ namespace lve {
         instance_ = this;
         keybinds_->setWindow(window.getGLFWWindow());
 
-        keybinds_->onPress({Key::F11}, [this]() {
+        keybinds_->onPress({Keys::F11}, [this]() {
             window.toggleFullscreen();
             requestSwapchainRecreate = true;
         });
 
-        keybinds_->onPress({Key::ESCAPE}, [this]() {
+        keybinds_->onPress({Keys::ESCAPE}, [this]() {
             window.setWindowClose();
         });
 

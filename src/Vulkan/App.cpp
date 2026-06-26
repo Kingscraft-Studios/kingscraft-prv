@@ -176,6 +176,8 @@ namespace lve {
 
         if (!renderer->beginFrame()) {
             recreateSwapChain();
+            auto newExtent = window.getExtent();
+            uiSystem->resize(newExtent.width, newExtent.height);
             return;
         }
         VkCommandBuffer cmd = renderer->getActiveCommandBuffer();
@@ -225,6 +227,8 @@ namespace lve {
         if (!renderer->endFrame()) {
             window.resetWindowResizedFlag();
             recreateSwapChain();
+            auto newExtent = window.getExtent();
+            uiSystem->resize(newExtent.width, newExtent.height);
         }
     }
 

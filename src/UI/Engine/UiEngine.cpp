@@ -100,8 +100,9 @@ namespace lve {
         stylePoolDirty_ = true;
     }
 
-    void UiEngine::markDirty(uint32_t elementId) {
+    void UiEngine::markDirty(uint32_t elementId, int styleIndex) {
         if (elementId >= UiRenderer::MAX_ELEMENTS) return;
+        if (styleIndex >= 0) elementStyles_[elementId] = static_cast<uint32_t>(styleIndex);
         if (!styleDirty_[elementId]) {
             styleDirty_[elementId] = true;
             firstDirty_ = std::min(firstDirty_, elementId);
@@ -146,6 +147,7 @@ namespace lve {
     // ---- Debug Editing Mode ----
 
     void UiEngine::setDebugMode(bool on) {
+        if (!debugEnabled_) return;
         debugMode_ = on;
         if (debugMode_) {
             ensureDebugOverlay();

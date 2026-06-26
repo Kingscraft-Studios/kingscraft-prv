@@ -160,6 +160,18 @@ namespace lve {
         engine_->onElementRemoved(element);
     }
 
+    void UiWrapper::markDirty(uint32_t elementId) {
+        if (!engine_) return;
+        int styleIndex = -1;
+        for (auto* element : elements_) {
+            if (element->getElementId() == elementId) {
+                styleIndex = static_cast<int>(element->getActiveStyleIndex());
+                break;
+            }
+        }
+        engine_->markDirty(elementId, styleIndex);
+    }
+
     void UiWrapper::registerButtonHandler(std::string name, std::function<void()> handler) {
         buttonHandlers_[name] = std::move(handler);
     }

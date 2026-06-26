@@ -39,6 +39,8 @@ Future:
 - Drop shadow: composite in fragment shader
 - Texture atlas for icons
 
+---------------------------------------------------------------------------------------
+
 Multi-Batch Bloom (future):
 - When multiple glowing object types exist (lanterns, lightsabers, etc.)
   with different blur profiles (sigma/kernelSize), group by profile
@@ -47,7 +49,7 @@ Multi-Batch Bloom (future):
 - Each batch runs: glow draw -> vertical blur -> horizontal blur + composite
 - Cost per batch: +2 fullscreen triangle draws, +2 offscreen framebuffers
 
----
+---------------------------------------------------------------------------------------
 Using Bloom for Blocks / Entities:
 
 Prerequisites per glowing object:

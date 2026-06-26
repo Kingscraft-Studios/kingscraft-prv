@@ -43,7 +43,7 @@ namespace lve {
         // Style system — delegates to engine
         uint32_t registerStyle(const UiStyle& style) { return engine_ ? engine_->registerStyle(style) : 0; }
         void updateStylePool() { if (engine_) engine_->updateStylePool(); }
-        void markDirty(uint32_t elementId) { if (engine_) engine_->markDirty(elementId); }
+        void markDirty(uint32_t elementId);
 
         // Debug editing mode — delegates to engine
         void setDebugMode(bool on) { if (engine_) engine_->setDebugMode(on); }

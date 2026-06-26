@@ -48,7 +48,7 @@ namespace lve {
 
         // Style system
         uint32_t registerStyle(const UiStyle& style);
-        void markDirty(uint32_t elementId);
+        void markDirty(uint32_t elementId, int styleIndex = -1);
         void updateStylePool();
         uint32_t allocateElementId();
         void setElementStyle(uint32_t id, uint32_t styleIndex);
@@ -90,7 +90,8 @@ namespace lve {
         uint32_t lastDirty_ = 0;
         bool stylePoolDirty_ = false;
 
-        // Debug editing mode state
+        // Master Switch for Enabling or disabling
+        bool debugEnabled_ = true;
         bool debugMode_ = false;
         UiElement* selectedElement_ = nullptr;
         UiElement* hoveredElement_ = nullptr;

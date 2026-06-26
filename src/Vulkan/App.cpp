@@ -23,6 +23,15 @@ namespace lve {
             window.setWindowClose();
         });
 
+        keybinds_->onPress({Keys::F3, Keys::F6}, [this]() {
+            uiSystem->toggleDebugMode();
+        });
+
+        keybinds_->onPress({Keys::F7}, [this]() {
+            if (uiSystem->isDebugModeOn())
+                uiSystem->logSelectedElementPosition();
+        });
+
         window.setMouseMoveCallback([this](double x, double y) {
             uiSystem->onMouseMove(x, y);
         });

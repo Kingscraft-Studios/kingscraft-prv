@@ -4,6 +4,7 @@
 
 #include "UI/Engine/UiEngine.hpp"
 #include "UI/Elements/UiElement.hpp"
+#include "UI/Elements/UiRect.hpp"
 #include "UI/UiStyle.hpp"
 #include <functional>
 #include <memory>
@@ -45,6 +46,11 @@ namespace lve {
         void updateStylePool();
         void markDirty(uint32_t elementId);
 
+        // Debug editing mode
+        void toggleDebugMode();
+        bool isDebugModeOn() const { return debugMode_; }
+        void logSelectedElementPosition();
+
     private:
         bool initialized_ = false;
         int width_ = 0;
@@ -67,6 +73,29 @@ namespace lve {
         uint32_t firstDirty_ = UiRenderer::MAX_ELEMENTS;
         uint32_t lastDirty_ = 0;
         bool stylePoolDirty_ = false;
+
+        // Debug editing mode
+        bool debugMode_ = false;
+        UiElement* selectedElement_ = nullptr;
+        UiElement* hoveredElement_ = nullptr;
+        bool isDragging_ = false;
+        glm::vec2 lastMouse_{0.0f};
+        glm::vec2 dragStartMouse_{0.0f};
+
+        // Debug overlay
+        UiRect debugHoverRect_;
+        UiRect debugBorderTop_;
+        UiRect debugBorderBottom_;
+        UiRect debugBorderLeft_;
+        UiRect debugBorderRight_;
+        uint32_t debugElementHoverId_ = 0;
+        uint32_t debugElementSelectId_ = 0;
+        uint32_t debugHoverStyle_ = 0;
+        uint32_t debugBorderStyle_ = 0;
+        bool debugOverlayReady_ = false;
+
+        void ensureDebugOverlay();
+        void renderDebugOverlays();
     };
 
 } // namespace lve

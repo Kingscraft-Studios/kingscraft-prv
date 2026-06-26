@@ -38,6 +38,28 @@ namespace lve {
         uint32_t getStyleIndex() const { return styleIndex_; }
         virtual uint32_t getActiveStyleIndex() const { return styleIndex_; }
 
+        void setAnchor(glm::vec2 normPos, glm::vec2 pixOffset) {
+            normalizedPos_ = normPos;
+            pixelOffset_ = pixOffset;
+        }
+        void setFillParent() {
+            normalizedPos_ = {0.0f, 0.0f};
+            pixelOffset_ = {0.0f, 0.0f};
+            normalizedSize_ = {1.0f, 1.0f};
+        }
+        void updateLayout(float parentW, float parentH) {
+            position_.x = normalizedPos_.x * parentW + pixelOffset_.x;
+            position_.y = normalizedPos_.y * parentH + pixelOffset_.y;
+            if (normalizedSize_.x > 0.0f) size_.x = normalizedSize_.x * parentW;
+            if (normalizedSize_.y > 0.0f) size_.y = normalizedSize_.y * parentH;
+        }
+
+        glm::vec2 getNormalizedPos() const { return normalizedPos_; }
+        glm::vec2 getNormalizedSize() const { return normalizedSize_; }
+        glm::vec2 getPixelOffset() const { return pixelOffset_; }
+        void setPixelOffset(glm::vec2 off) { pixelOffset_ = off; }
+        void adjustPixelOffset(float dx, float dy) { pixelOffset_.x += dx; pixelOffset_.y += dy; }
+
     protected:
         glm::vec2 position_{0.0f};
         glm::vec2 size_{0.0f};
@@ -46,6 +68,9 @@ namespace lve {
         std::string name_;
         uint32_t elementId_ = 0;
         uint32_t styleIndex_ = 0;
+        glm::vec2 normalizedPos_{0.0f};
+        glm::vec2 normalizedSize_{0.0f};
+        glm::vec2 pixelOffset_{0.0f};
     };
 
 } // namespace lve

@@ -1,10 +1,11 @@
 // TODO: SSBO Style System — MainMenu redesign
 // Uses registered styles with the SSBO system:
-// - Radial gradient background via UiGradientRect
-// - Gold text with Arial font
+// - Solid background via UiGradientRect (setFillParent)
+// - Gold text with Arial font, anchored positions
 // - Buttons with transparent bg, gold text, gold selection bar
 // - Hover styles for text color change (gold_dark → gold)
-// - Selection bar rects as child elements alongside buttons
+// - Selection bar rects alongside buttons
+// - Anchor system repositioning on resize via UiWrapper
 
 #include "Core/MainMenu.hpp"
 
@@ -61,6 +62,9 @@ namespace lve {
         createBackground();
         createTitle();
         createButtons();
+        // Apply initial layout
+        uiSystem_.resize(static_cast<int>(extent_.width),
+                         static_cast<int>(extent_.height));
     }
 
     void MainMenu::cleanup() {
@@ -78,18 +82,14 @@ namespace lve {
     }
 
     void MainMenu::createBackground() {
-        background_.setPosition({0, 0});
-        background_.setSize({static_cast<float>(extent_.width),
-                             static_cast<float>(extent_.height)});
+        background_.setFillParent();
         background_.setStyleIndex(g_styleBg);
         background_.setName("BgGradient");
         uiSystem_.addElement(&background_);
     }
 
     void MainMenu::createTitle() {
-        float cx = static_cast<float>(extent_.width) * 0.5f;
-
-        title_.setPosition({cx - 300.0f, 100.0f});
+        title_.setAnchor({0.5f, 0.0f}, {-300.0f, 100.0f});
         title_.setSize({600.0f, 70.0f});
         title_.setText("KINGSCRAFT");
         title_.setFont("default");
@@ -99,7 +99,7 @@ namespace lve {
         title_.setName("Title");
         uiSystem_.addElement(&title_);
 
-        subtitle_.setPosition({cx - 200.0f, 170.0f});
+        subtitle_.setAnchor({0.5f, 0.0f}, {-200.0f, 170.0f});
         subtitle_.setSize({400.0f, 30.0f});
         subtitle_.setText("THE SANDBOX WITHOUT LIMITS");
         subtitle_.setFont("default");
@@ -111,18 +111,12 @@ namespace lve {
     }
 
     void MainMenu::createButtons() {
-        float cx = 120.0f;  // left-aligned
-        float bw = 300.0f;
-        float bh = 50.0f;
-        float spacing = 10.0f;
-        float barW = 4.0f;
-        float barH = 40.0f;
-        float startY = static_cast<float>(extent_.height) * 0.45f;
-        float barOffsetY = (bh - barH) * 0.5f;
+        // Anchor origin: left edge, 45% down the screen
+        // Pixel offsets position each element relative to that anchor
 
         // "ENTER WORLD" button
-        enterWorldButton_.setPosition({cx + 20.0f, startY});
-        enterWorldButton_.setSize({bw, bh});
+        enterWorldButton_.setAnchor({0.0f, 0.45f}, {140.0f, 0.0f});
+        enterWorldButton_.setSize({300.0f, 50.0f});
         enterWorldButton_.setText("ENTER WORLD");
         enterWorldButton_.setFont("default");
         enterWorldButton_.setFontSize(38.0f);
@@ -136,17 +130,17 @@ namespace lve {
         enterWorldButton_.setName("EnterWorldButton");
         uiSystem_.addElement(&enterWorldButton_);
 
-        // Selection bar for "ENTER WORLD"
-        selectionBarEnter_.setPosition({cx, startY + barOffsetY});
-        selectionBarEnter_.setSize({barW, barH});
+        // Selection bar for "ENTER WORLD" — 20px left of button, vertically centered (50-40)/2=5
+        selectionBarEnter_.setAnchor({0.0f, 0.45f}, {120.0f, 5.0f});
+        selectionBarEnter_.setSize({4.0f, 40.0f});
         selectionBarEnter_.setColor(GOLD);
         selectionBarEnter_.setStyleIndex(g_styleSelBar);
         selectionBarEnter_.setName("SelBarEnter");
         uiSystem_.addElement(&selectionBarEnter_);
 
-        // "QUIT GAME" button
-        quitButton_.setPosition({cx + 20.0f, startY + bh + spacing});
-        quitButton_.setSize({bw, bh});
+        // "QUIT GAME" button — 60px below row 1 (50px button + 10px spacing)
+        quitButton_.setAnchor({0.0f, 0.45f}, {140.0f, 60.0f});
+        quitButton_.setSize({300.0f, 50.0f});
         quitButton_.setText("QUIT GAME");
         quitButton_.setFont("default");
         quitButton_.setFontSize(38.0f);
@@ -160,9 +154,9 @@ namespace lve {
         quitButton_.setName("QuitButton");
         uiSystem_.addElement(&quitButton_);
 
-        // Selection bar for "QUIT GAME"
-        selectionBarQuit_.setPosition({cx, startY + bh + spacing + barOffsetY});
-        selectionBarQuit_.setSize({barW, barH});
+        // Selection bar for "QUIT GAME" — 20px left of button, 65px from anchor (60+5)
+        selectionBarQuit_.setAnchor({0.0f, 0.45f}, {120.0f, 65.0f});
+        selectionBarQuit_.setSize({4.0f, 40.0f});
         selectionBarQuit_.setColor(GOLD);
         selectionBarQuit_.setStyleIndex(g_styleSelBar);
         selectionBarQuit_.setName("SelBarQuit");

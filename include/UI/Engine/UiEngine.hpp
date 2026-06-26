@@ -35,6 +35,10 @@ namespace lve {
         bool loadFont(const std::string& ttfPath, const std::string& name);
         const UiFontAtlas::Glyph* getGlyph(const std::string& font, char32_t codepoint) const;
 
+        // Style SSBO upload
+        void uploadStylePool(const void* data, uint32_t count);
+        void uploadElementStyles(const void* data, uint32_t firstElement, uint32_t count);
+
         // Subsystem access (for advanced use)
         UiFontAtlas& getFontAtlas() { return *fontAtlas_; }
         UiBatchQueue& getBatchQueue() { return *batchQueue_; }

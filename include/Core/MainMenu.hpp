@@ -4,6 +4,8 @@
 #include "UI/UiWrapper.hpp"
 #include "UI/Elements/UiTextBlock.hpp"
 #include "UI/Elements/UiButton.hpp"
+#include "UI/Elements/UiGradientRect.hpp"
+#include "UI/Elements/UiRect.hpp"
 
 namespace lve {
 
@@ -21,6 +23,7 @@ namespace lve {
         FrameRenderInfo getFrameRenderInfo(const Renderer& renderer, uint32_t) const override;
 
     private:
+        void createBackground();
         void createTitle();
         void createButtons();
 
@@ -28,7 +31,11 @@ namespace lve {
         UiWrapper& uiSystem_;
         VkExtent2D extent_;
 
+        UiGradientRect background_;
+        UiRect selectionBarEnter_;
+        UiRect selectionBarQuit_;
         UiTextBlock title_;
+        UiTextBlock subtitle_;
         UiButton enterWorldButton_;
         UiButton quitButton_;
     };

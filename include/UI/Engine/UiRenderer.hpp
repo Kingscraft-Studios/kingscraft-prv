@@ -5,6 +5,7 @@
 #include "Vulkan/Buffer.hpp"
 #include "Vulkan/Pipeline.hpp"
 #include "UI/Engine/UiBatchQueue.hpp"
+#include "UI/UiStyle.hpp"
 #include <memory>
 #include <glm/glm.hpp>
 
@@ -12,6 +13,9 @@ namespace lve {
 
     class UiRenderer {
     public:
+        static constexpr uint32_t MAX_STYLES = 64;
+        static constexpr uint32_t MAX_ELEMENTS = 1024;
+
         UiRenderer(Device& device, DescriptorManager& descriptorManager, VkExtent2D extent);
         ~UiRenderer();
 
@@ -28,6 +32,9 @@ namespace lve {
 
         void setFontAtlas(VkImageView imageView, VkSampler sampler);
         bool hasFontAtlas() const { return atlasView_ != VK_NULL_HANDLE; }
+
+        void uploadStylePool(const void* data, uint32_t count);
+        void uploadElementStyles(const void* data, uint32_t firstElement, uint32_t count);
 
     private:
         void createRenderPass();
@@ -76,13 +83,21 @@ namespace lve {
         VkDescriptorSet uiDescriptorSet_ = VK_NULL_HANDLE;
         VkDescriptorSet compositeDescriptorSet_ = VK_NULL_HANDLE;
 
-        // Uniform buffer
+        // Uniform buffer (binding 0)
         std::unique_ptr<Buffer> uniformBuffer_;
 
-        // Font atlas (set externally)
+        // Font atlas (binding 1)
         VkImageView atlasView_ = VK_NULL_HANDLE;
         VkSampler atlasSampler_ = VK_NULL_HANDLE;
         bool atlasDirty_ = false;
+
+        // Style pool SSBO (binding 2) — stores GpuStyle entries
+        std::unique_ptr<Buffer> stylePoolBuffer_;
+        VkDescriptorBufferInfo stylePoolInfo_{};
+
+        // Element→style index SSBO (binding 3) — maps elementId to styleIndex
+        std::unique_ptr<Buffer> elementStylesBuffer_;
+        VkDescriptorBufferInfo elementStylesInfo_{};
     };
 
 } // namespace lve

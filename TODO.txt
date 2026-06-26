@@ -1,3 +1,44 @@
+SSBO Style System (GPU-Accelerated UI Styling):
+================================================
+
+Architecture:
+- Two-level indirection: elementId → styleIndex → GpuStyle
+- stylePool SSBO (3 KB, 64 entries): stores actual GpuStyle data (48B each)
+- elementStyles SSBO (4 KB, 1024 entries): maps elementId → styleIndex (uint32_t each)
+- Vertex shader does SSBO lookup, passes interpolated values to FS (zero FS SSBO reads)
+- Dirty-range uploads: only changed elementStyles indices are uploaded each frame
+
+Files created:
+- include/UI/UiStyle.hpp          — RenderMode, UiStyle (C++), GpuStyle (GPU, 48B)
+- include/UI/Elements/UiGradientRect.hpp — gradient rect element
+- src/UI/Elements/UiGradientRect.cpp      — gradient rect render()
+
+Files modified:
+- include/UI/Engine/UiBatchQueue.hpp  — added uint32_t elementId to UiVertex
+- include/UI/Elements/UiElement.hpp   — added elementId_, styleIndex_
+- include/UI/Elements/UiButton.hpp    — added hoverStyleIndex_
+- include/UI/Engine/UiRenderer.hpp    — added 2 SSBOs, upload methods
+- include/UI/Engine/UiEngine.hpp      — passthrough upload methods
+- include/UI/UiWrapper.hpp            — registerStyle(), dirty tracking
+- include/Core/MainMenu.hpp           — added gradient rect members
+- include/Core/Constants.hpp          — added color constants
+- src/UI/Engine/UiRenderer.cpp        — SSBO plumbing, stride 48, 4th attrib, 2 bindings
+- src/UI/Engine/UiEngine.cpp          — passthrough upload methods
+- src/UI/UiWrapper.cpp                — registerStyle, dirty-range upload, assign IDs
+- src/UI/Elements/UiRect.cpp          — fill elementId on vertices
+- src/UI/Elements/UiTextBlock.cpp     — fill elementId on vertices
+- src/UI/Elements/UiButton.cpp        — fill elementId, swap style on hover
+- resources/shaders/ui.vert           — SSBO lookup, pass style as varyings
+- resources/shaders/ui.frag           — use varyings, mode dispatch (no FS SSBO reads)
+- src/Core/MainMenu.cpp               — redesigned with styles, gradient bg, gold scheme
+- TODO.txt                            — this section
+
+Future:
+- Animation system: interpolate between style entries over time
+- Per-corner radii: extend GpuStyle to 4th vec4
+- Drop shadow: composite in fragment shader
+- Texture atlas for icons
+
 Multi-Batch Bloom (future):
 - When multiple glowing object types exist (lanterns, lightsabers, etc.)
   with different blur profiles (sigma/kernelSize), group by profile

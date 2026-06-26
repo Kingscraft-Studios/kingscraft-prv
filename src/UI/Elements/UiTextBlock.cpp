@@ -21,10 +21,10 @@ namespace lve {
             float y1 = penY + (glyph->bearingY + glyph->height) * scale;
 
             UiVertex verts[4] = {
-                {{x0, y0}, {glyph->uv0.x, glyph->uv0.y}, color_},
-                {{x1, y0}, {glyph->uv1.x, glyph->uv0.y}, color_},
-                {{x1, y1}, {glyph->uv1.x, glyph->uv1.y}, color_},
-                {{x0, y1}, {glyph->uv0.x, glyph->uv1.y}, color_},
+                {{x0, y0}, {glyph->uv0.x, glyph->uv0.y}, color_, elementId_},
+                {{x1, y0}, {glyph->uv1.x, glyph->uv0.y}, color_, elementId_},
+                {{x1, y1}, {glyph->uv1.x, glyph->uv1.y}, color_, elementId_},
+                {{x0, y1}, {glyph->uv0.x, glyph->uv1.y}, color_, elementId_},
             };
 
             uint32_t indices[6] = {0, 1, 2, 0, 2, 3};

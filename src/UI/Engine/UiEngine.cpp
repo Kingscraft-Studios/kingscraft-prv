@@ -1,3 +1,5 @@
+// TODO: SSBO Style System — passthrough methods for style uploads to UiRenderer
+
 #include "UI/Engine/UiEngine.hpp"
 
 namespace lve {
@@ -70,6 +72,14 @@ namespace lve {
 
     const UiFontAtlas::Glyph* UiEngine::getGlyph(const std::string& font, char32_t codepoint) const {
         return fontAtlas_->getGlyph(font, codepoint);
+    }
+
+    void UiEngine::uploadStylePool(const void* data, uint32_t count) {
+        if (initialized_) renderer_->uploadStylePool(data, count);
+    }
+
+    void UiEngine::uploadElementStyles(const void* data, uint32_t firstElement, uint32_t count) {
+        if (initialized_) renderer_->uploadElementStyles(data, firstElement, count);
     }
 
 } // namespace lve

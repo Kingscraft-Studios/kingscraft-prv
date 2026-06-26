@@ -2,6 +2,7 @@
 
 #include <glm/glm.hpp>
 #include <string>
+#include <cstdint>
 
 namespace lve {
 
@@ -30,12 +31,21 @@ namespace lve {
         bool isVisible() const { return visible_; }
         const std::string& getName() const { return name_; }
 
+        void setElementId(uint32_t id) { elementId_ = id; }
+        uint32_t getElementId() const { return elementId_; }
+
+        void setStyleIndex(uint32_t index) { styleIndex_ = index; }
+        uint32_t getStyleIndex() const { return styleIndex_; }
+        virtual uint32_t getActiveStyleIndex() const { return styleIndex_; }
+
     protected:
         glm::vec2 position_{0.0f};
         glm::vec2 size_{0.0f};
         glm::vec4 color_{1.0f};
         bool visible_ = true;
         std::string name_;
+        uint32_t elementId_ = 0;
+        uint32_t styleIndex_ = 0;
     };
 
 } // namespace lve

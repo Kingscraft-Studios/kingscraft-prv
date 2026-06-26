@@ -15,16 +15,18 @@ namespace lve {
         float y1 = position_.y + size_.y;
 
         UiVertex bgVerts[4] = {
-            {{x0, y0}, {-1.0f, -1.0f}, bgColor},
-            {{x1, y0}, {-1.0f, -1.0f}, bgColor},
-            {{x1, y1}, {-1.0f, -1.0f}, bgColor},
-            {{x0, y1}, {-1.0f, -1.0f}, bgColor},
+            {{x0, y0}, {-1.0f, -1.0f}, bgColor, elementId_},
+            {{x1, y0}, {-1.0f, -1.0f}, bgColor, elementId_},
+            {{x1, y1}, {-1.0f, -1.0f}, bgColor, elementId_},
+            {{x0, y1}, {-1.0f, -1.0f}, bgColor, elementId_},
         };
         uint32_t indices[6] = {0, 1, 2, 0, 2, 3};
         engine.addQuad(bgVerts, indices);
 
         // Text
         if (text_.empty()) return;
+
+        glm::vec4 activeTextColor = getActiveTextColor();
 
         float scale = fontSize_ / UiFontAtlas::ATLAS_FONT_SIZE;
         float textW = 0.0f;
@@ -46,10 +48,10 @@ namespace lve {
             float gy1 = penY + (g->bearingY + g->height) * scale;
 
             UiVertex textVerts[4] = {
-                {{gx0, gy0}, {g->uv0.x, g->uv0.y}, textColor_},
-                {{gx1, gy0}, {g->uv1.x, g->uv0.y}, textColor_},
-                {{gx1, gy1}, {g->uv1.x, g->uv1.y}, textColor_},
-                {{gx0, gy1}, {g->uv0.x, g->uv1.y}, textColor_},
+                {{gx0, gy0}, {g->uv0.x, g->uv0.y}, activeTextColor, elementId_},
+                {{gx1, gy0}, {g->uv1.x, g->uv0.y}, activeTextColor, elementId_},
+                {{gx1, gy1}, {g->uv1.x, g->uv1.y}, activeTextColor, elementId_},
+                {{gx0, gy1}, {g->uv0.x, g->uv1.y}, activeTextColor, elementId_},
             };
             engine.addQuad(textVerts, indices);
 

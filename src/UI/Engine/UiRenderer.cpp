@@ -1,3 +1,12 @@
+// TODO: SSBO Style System
+// Two-level indirection: elementId → styleIndex → GpuStyle
+// Binding 0: UBO (projection matrix, vertex shader)
+// Binding 1: font atlas sampler (fragment shader)
+// Binding 2: stylePool SSBO — GpuStyle[64] (vertex shader)
+// Binding 3: elementStyles SSBO — uint32_t[1024] (vertex shader)
+// Vertex shader does both lookups, passes interpolated style to FS.
+// Fragment shader has ZERO SSBO reads — uses varyings only.
+
 #include "UI/Engine/UiRenderer.hpp"
 #include "Vulkan/Pipeline.hpp"
 
@@ -65,6 +74,8 @@ namespace lve {
             vkDestroyRenderPass(device_.device(), offscreenRenderPass_, nullptr);
             offscreenRenderPass_ = VK_NULL_HANDLE;
         }
+        stylePoolBuffer_.reset();
+        elementStylesBuffer_.reset();
         uniformBuffer_.reset();
         initialized_ = false;
     }
@@ -165,6 +176,18 @@ namespace lve {
         atlasDirty_ = true;
     }
 
+    void UiRenderer::uploadStylePool(const void* data, uint32_t count) {
+        if (!stylePoolBuffer_) return;
+        uint32_t bytes = std::min(count, MAX_STYLES) * sizeof(GpuStyle);
+        stylePoolBuffer_->write(data, 0, bytes);
+    }
+
+    void UiRenderer::uploadElementStyles(const void* data, uint32_t firstElement, uint32_t count) {
+        if (!elementStylesBuffer_) return;
+        uint32_t bytes = std::min(count, MAX_ELEMENTS - firstElement) * sizeof(uint32_t);
+        elementStylesBuffer_->write(data, firstElement * sizeof(uint32_t), bytes);
+    }
+
     void UiRenderer::createRenderPass() {
         VkAttachmentDescription colorAttachment{};
         colorAttachment.format = VK_FORMAT_R8G8B8A8_UNORM;
@@ -215,7 +238,10 @@ namespace lve {
     }
 
     void UiRenderer::createDescriptorSetLayouts() {
-        std::vector<VkDescriptorSetLayoutBinding> uiBindings(2);
+        // Binding 0: UBO (vertex), Binding 1: font atlas (fragment),
+        // Binding 2: stylePool SSBO (vertex), Binding 3: elementStyles SSBO (vertex)
+        std::vector<VkDescriptorSetLayoutBinding> uiBindings(4);
+
         uiBindings[0].binding = 0;
         uiBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         uiBindings[0].descriptorCount = 1;
@@ -225,6 +251,16 @@ namespace lve {
         uiBindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         uiBindings[1].descriptorCount = 1;
         uiBindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        uiBindings[2].binding = 2;
+        uiBindings[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        uiBindings[2].descriptorCount = 1;
+        uiBindings[2].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+        uiBindings[3].binding = 3;
+        uiBindings[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        uiBindings[3].descriptorCount = 1;
+        uiBindings[3].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
         uiDescriptorSetLayout_ = descriptorManager_.createLayout(uiBindings);
 
@@ -238,11 +274,15 @@ namespace lve {
     }
 
     void UiRenderer::createDescriptorPools() {
-        std::vector<VkDescriptorPoolSize> uiPoolSizes(2);
+        std::vector<VkDescriptorPoolSize> uiPoolSizes(4);
         uiPoolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         uiPoolSizes[0].descriptorCount = 1;
         uiPoolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         uiPoolSizes[1].descriptorCount = 1;
+        uiPoolSizes[2].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        uiPoolSizes[2].descriptorCount = 1;
+        uiPoolSizes[3].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        uiPoolSizes[3].descriptorCount = 1;
 
         uiDescriptorPool_ = descriptorManager_.createPool(uiPoolSizes, 1);
 
@@ -279,7 +319,8 @@ namespace lve {
         bindingDesc.stride = sizeof(UiVertex);
         bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-        std::vector<VkVertexInputAttributeDescription> attributeDescs(3);
+        // pos (loc 0), uv (loc 1), color (loc 2), elementId (loc 3)
+        std::vector<VkVertexInputAttributeDescription> attributeDescs(4);
         attributeDescs[0].binding = 0;
         attributeDescs[0].location = 0;
         attributeDescs[0].format = VK_FORMAT_R32G32_SFLOAT;
@@ -294,6 +335,11 @@ namespace lve {
         attributeDescs[2].location = 2;
         attributeDescs[2].format = VK_FORMAT_R32G32B32A32_SFLOAT;
         attributeDescs[2].offset = static_cast<uint32_t>(offsetof(UiVertex, color));
+
+        attributeDescs[3].binding = 0;
+        attributeDescs[3].location = 3;
+        attributeDescs[3].format = VK_FORMAT_R32_UINT;
+        attributeDescs[3].offset = static_cast<uint32_t>(offsetof(UiVertex, elementId));
 
         configInfo.bindingDescriptions = {bindingDesc};
         configInfo.attributeDescriptions = {attributeDescs.begin(), attributeDescs.end()};
@@ -451,12 +497,31 @@ namespace lve {
     }
 
     void UiRenderer::updateUiDescriptorSet() {
-        if (atlasView_ == VK_NULL_HANDLE) return;
-        // Write UBO binding
-        VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = uniformBuffer_->getHandle();
-        bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(glm::mat4);
+        // Allocate SSBOs lazily on first descriptor update
+        if (!stylePoolBuffer_) {
+            stylePoolBuffer_ = std::make_unique<Buffer>(
+                device_, MAX_STYLES * sizeof(GpuStyle),
+                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            stylePoolInfo_.buffer = stylePoolBuffer_->getHandle();
+            stylePoolInfo_.offset = 0;
+            stylePoolInfo_.range = MAX_STYLES * sizeof(GpuStyle);
+        }
+        if (!elementStylesBuffer_) {
+            elementStylesBuffer_ = std::make_unique<Buffer>(
+                device_, MAX_ELEMENTS * sizeof(uint32_t),
+                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            elementStylesInfo_.buffer = elementStylesBuffer_->getHandle();
+            elementStylesInfo_.offset = 0;
+            elementStylesInfo_.range = MAX_ELEMENTS * sizeof(uint32_t);
+        }
+
+        // Write UBO binding (0)
+        VkDescriptorBufferInfo uboBufferInfo{};
+        uboBufferInfo.buffer = uniformBuffer_->getHandle();
+        uboBufferInfo.offset = 0;
+        uboBufferInfo.range = sizeof(glm::mat4);
 
         VkWriteDescriptorSet uboWrite{};
         uboWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -464,9 +529,9 @@ namespace lve {
         uboWrite.dstBinding = 0;
         uboWrite.descriptorCount = 1;
         uboWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        uboWrite.pBufferInfo = &bufferInfo;
+        uboWrite.pBufferInfo = &uboBufferInfo;
 
-        // Write font atlas binding
+        // Write font atlas binding (1) — only if atlas is ready
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         imageInfo.imageView = atlasView_;
@@ -480,9 +545,37 @@ namespace lve {
         imageWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         imageWrite.pImageInfo = &imageInfo;
 
-        VkWriteDescriptorSet writes[] = {uboWrite, imageWrite};
+        // Write stylePool SSBO binding (2)
+        VkWriteDescriptorSet poolWrite{};
+        poolWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        poolWrite.dstSet = uiDescriptorSet_;
+        poolWrite.dstBinding = 2;
+        poolWrite.descriptorCount = 1;
+        poolWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        poolWrite.pBufferInfo = &stylePoolInfo_;
+
+        // Write elementStyles SSBO binding (3)
+        VkWriteDescriptorSet elemWrite{};
+        elemWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        elemWrite.dstSet = uiDescriptorSet_;
+        elemWrite.dstBinding = 3;
+        elemWrite.descriptorCount = 1;
+        elemWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        elemWrite.pBufferInfo = &elementStylesInfo_;
+
+        uint32_t writeCount;
+        VkWriteDescriptorSet writes[4];
+        writes[0] = uboWrite;
+        writes[1] = poolWrite;
+        writes[2] = elemWrite;
+        writeCount = 3;
+
+        if (atlasView_ != VK_NULL_HANDLE) {
+            writes[writeCount++] = imageWrite;
+        }
+
         descriptorManager_.updateDescriptorSets(
-            std::vector<VkWriteDescriptorSet>(writes, writes + 2));
+            std::vector<VkWriteDescriptorSet>(writes, writes + writeCount));
     }
 
     void UiRenderer::updateCompositeDescriptorSet() {

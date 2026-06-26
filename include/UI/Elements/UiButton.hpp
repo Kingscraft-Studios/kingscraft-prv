@@ -38,6 +38,18 @@ namespace lve {
         const glm::vec4& getHoverColor() const { return hoverColor_; }
         const glm::vec4& getTextColor() const { return textColor_; }
 
+        void setHoverStyleIndex(uint32_t index) { hoverStyleIndex_ = index; }
+        uint32_t getHoverStyleIndex() const { return hoverStyleIndex_; }
+        uint32_t getActiveStyleIndex() const override {
+            return isHovered_ ? hoverStyleIndex_ : styleIndex_;
+        }
+
+        void setNormalTextColor(const glm::vec4& c) { normalTextColor_ = c; }
+        void setHoverTextColor(const glm::vec4& c) { hoverTextColor_ = c; }
+        const glm::vec4& getActiveTextColor() const {
+            return isHovered_ ? hoverTextColor_ : normalTextColor_;
+        }
+
         void click();
 
     private:
@@ -50,6 +62,10 @@ namespace lve {
         glm::vec4 normalColor_{0.3f, 0.3f, 0.3f, 1.0f};
         glm::vec4 hoverColor_{0.5f, 0.5f, 0.5f, 1.0f};
         glm::vec4 textColor_{1.0f, 1.0f, 1.0f, 1.0f};
+        glm::vec4 normalTextColor_{1.0f, 1.0f, 1.0f, 1.0f};
+        glm::vec4 hoverTextColor_{1.0f, 1.0f, 1.0f, 1.0f};
+
+        uint32_t hoverStyleIndex_ = 0;
 
         std::function<void()> onClick_;
     };

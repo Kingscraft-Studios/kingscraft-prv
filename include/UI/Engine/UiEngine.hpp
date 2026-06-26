@@ -5,11 +5,18 @@
 #include "UI/Engine/UiBatchQueue.hpp"
 #include "UI/Engine/UiFontAtlas.hpp"
 #include "UI/Engine/UiRenderer.hpp"
+#include "UI/Elements/UiRect.hpp"
+#include "UI/UiStyle.hpp"
 #include <glm/glm.hpp>
 #include <memory>
 #include <string>
+#include <vector>
+#include <algorithm>
+#include <cmath>
 
 namespace lve {
+
+    class UiElement;
 
     class UiEngine {
     public:
@@ -39,12 +46,31 @@ namespace lve {
         void uploadStylePool(const void* data, uint32_t count);
         void uploadElementStyles(const void* data, uint32_t firstElement, uint32_t count);
 
+        // Style system
+        uint32_t registerStyle(const UiStyle& style);
+        void markDirty(uint32_t elementId);
+        void updateStylePool();
+        uint32_t allocateElementId();
+        void setElementStyle(uint32_t id, uint32_t styleIndex);
+
+        // Debug editing mode
+        void setDebugMode(bool on);
+        bool isDebugModeOn() const { return debugMode_; }
+        void logSelectedElementPosition();
+        void handleDebugMouseMove(float x, float y, const std::vector<UiElement*>& elements, float parentW, float parentH);
+        void handleDebugMouseButton(int button, int action, float x, float y, const std::vector<UiElement*>& elements);
+        void renderDebugOverlays(const std::vector<UiElement*>& elements);
+        void onElementRemoved(UiElement* element);
+
         // Subsystem access (for advanced use)
         UiFontAtlas& getFontAtlas() { return *fontAtlas_; }
         UiBatchQueue& getBatchQueue() { return *batchQueue_; }
         UiRenderer& getRenderer() { return *renderer_; }
 
     private:
+        void ensureDebugOverlay();
+        void uploadPendingStyles();
+
         Device& device_;
         DescriptorManager& descriptorManager_;
         VkExtent2D extent_;
@@ -54,6 +80,35 @@ namespace lve {
         std::unique_ptr<UiRenderer> renderer_;
 
         bool initialized_ = false;
+
+        // Style system state
+        uint32_t nextElementId_ = 0;
+        std::vector<GpuStyle> stylePool_;
+        std::vector<uint32_t> elementStyles_;
+        std::vector<bool> styleDirty_;
+        uint32_t firstDirty_ = UiRenderer::MAX_ELEMENTS;
+        uint32_t lastDirty_ = 0;
+        bool stylePoolDirty_ = false;
+
+        // Debug editing mode state
+        bool debugMode_ = false;
+        UiElement* selectedElement_ = nullptr;
+        UiElement* hoveredElement_ = nullptr;
+        bool isDragging_ = false;
+        glm::vec2 lastMouse_{0.0f};
+        glm::vec2 dragStartMouse_{0.0f};
+
+        // Debug overlay rects
+        UiRect debugHoverRect_;
+        UiRect debugBorderTop_;
+        UiRect debugBorderBottom_;
+        UiRect debugBorderLeft_;
+        UiRect debugBorderRight_;
+        uint32_t debugElementHoverId_ = 0;
+        uint32_t debugElementSelectId_ = 0;
+        uint32_t debugHoverStyle_ = 0;
+        uint32_t debugBorderStyle_ = 0;
+        bool debugOverlayReady_ = false;
     };
 
 } // namespace lve

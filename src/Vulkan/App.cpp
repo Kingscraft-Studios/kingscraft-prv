@@ -24,7 +24,7 @@ namespace lve {
         });
 
         keybinds_->onPress({Keys::F3, Keys::F6}, [this]() {
-            uiSystem->toggleDebugMode();
+            uiSystem->setDebugMode(!uiSystem->isDebugModeOn());
         });
 
         keybinds_->onPress({Keys::F7}, [this]() {

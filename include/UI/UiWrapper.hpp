@@ -4,7 +4,6 @@
 
 #include "UI/Engine/UiEngine.hpp"
 #include "UI/Elements/UiElement.hpp"
-#include "UI/Elements/UiRect.hpp"
 #include "UI/UiStyle.hpp"
 #include <functional>
 #include <memory>
@@ -41,15 +40,15 @@ namespace lve {
         void removeElement(UiElement* element);
         void registerButtonHandler(std::string name, std::function<void()> handler);
 
-        // Style system
-        uint32_t registerStyle(const UiStyle& style);
-        void updateStylePool();
-        void markDirty(uint32_t elementId);
+        // Style system — delegates to engine
+        uint32_t registerStyle(const UiStyle& style) { return engine_ ? engine_->registerStyle(style) : 0; }
+        void updateStylePool() { if (engine_) engine_->updateStylePool(); }
+        void markDirty(uint32_t elementId) { if (engine_) engine_->markDirty(elementId); }
 
-        // Debug editing mode
-        void toggleDebugMode();
-        bool isDebugModeOn() const { return debugMode_; }
-        void logSelectedElementPosition();
+        // Debug editing mode — delegates to engine
+        void setDebugMode(bool on) { if (engine_) engine_->setDebugMode(on); }
+        bool isDebugModeOn() const { return engine_ && engine_->isDebugModeOn(); }
+        void logSelectedElementPosition() { if (engine_) engine_->logSelectedElementPosition(); }
 
     private:
         bool initialized_ = false;
@@ -62,40 +61,6 @@ namespace lve {
 
         VkRenderPass currentRenderPass_ = VK_NULL_HANDLE;
         std::unordered_map<std::string, std::function<void()>> buttonHandlers_;
-
-        // Style system
-        uint32_t nextElementId_ = 0;
-        std::vector<GpuStyle> stylePool_;
-        std::vector<uint32_t> elementStyles_;
-        std::vector<bool> styleDirty_;
-
-        // Dirty range tracking
-        uint32_t firstDirty_ = UiRenderer::MAX_ELEMENTS;
-        uint32_t lastDirty_ = 0;
-        bool stylePoolDirty_ = false;
-
-        // Debug editing mode
-        bool debugMode_ = false;
-        UiElement* selectedElement_ = nullptr;
-        UiElement* hoveredElement_ = nullptr;
-        bool isDragging_ = false;
-        glm::vec2 lastMouse_{0.0f};
-        glm::vec2 dragStartMouse_{0.0f};
-
-        // Debug overlay
-        UiRect debugHoverRect_;
-        UiRect debugBorderTop_;
-        UiRect debugBorderBottom_;
-        UiRect debugBorderLeft_;
-        UiRect debugBorderRight_;
-        uint32_t debugElementHoverId_ = 0;
-        uint32_t debugElementSelectId_ = 0;
-        uint32_t debugHoverStyle_ = 0;
-        uint32_t debugBorderStyle_ = 0;
-        bool debugOverlayReady_ = false;
-
-        void ensureDebugOverlay();
-        void renderDebugOverlays();
     };
 
 } // namespace lve

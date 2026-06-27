@@ -5,7 +5,7 @@
 #include "Vulkan/Buffer.hpp"
 #include "Vulkan/Pipeline.hpp"
 #include "UI/Engine/UiBatchQueue.hpp"
-#include "UI/UiStyle.hpp"
+#include "UiStyle.hpp"
 #include <memory>
 #include <glm/glm.hpp>
 

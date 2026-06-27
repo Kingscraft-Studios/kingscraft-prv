@@ -1,6 +1,5 @@
 #include "UI/Elements/UiButton.hpp"
 #include "UI/Engine/UiEngine.hpp"
-#include "UI/Engine/UiFontAtlas.hpp"
 
 namespace lve {
 
@@ -24,45 +23,13 @@ namespace lve {
         engine.addQuad(bgVerts, indices);
 
         // Text
-        if (text_.empty()) return;
+        if (label_.text.empty()) return;
 
-        glm::vec4 activeTextColor = getActiveTextColor();
-
-        float scale = fontSize_ / UiFontAtlas::ATLAS_FONT_SIZE;
-        float textW = 0.0f;
-        for (char32_t c : text_) {
-            const auto* g = engine.getGlyph(fontName_, c);
-            if (g) textW += g->advance * scale;
-        }
-
-        float penX = position_.x + (size_.x - textW) * 0.5f;
-        float penY = position_.y + size_.y * 0.5f + fontSize_ * 0.35f;
-
-        for (char32_t c : text_) {
-            const auto* g = engine.getGlyph(fontName_, c);
-            if (!g) continue;
-
-            float gx0 = penX + g->bearingX * scale;
-            float gy0 = penY + g->bearingY * scale;
-            float gx1 = gx0 + g->width * scale;
-            float gy1 = penY + (g->bearingY + g->height) * scale;
-
-            UiVertex textVerts[4] = {
-                {{gx0, gy0}, {g->uv0.x, g->uv0.y}, activeTextColor, elementId_},
-                {{gx1, gy0}, {g->uv1.x, g->uv0.y}, activeTextColor, elementId_},
-                {{gx1, gy1}, {g->uv1.x, g->uv1.y}, activeTextColor, elementId_},
-                {{gx0, gy1}, {g->uv0.x, g->uv1.y}, activeTextColor, elementId_},
-            };
-            engine.addQuad(textVerts, indices);
-
-            penX += g->advance * scale;
-        }
+        renderLabel(engine, getActiveTextColor());
     }
 
     bool UiButton::containsPoint(glm::vec2 point) const {
-        if (!visible_) return false;
-        return point.x >= position_.x && point.x <= position_.x + size_.x &&
-               point.y >= position_.y && point.y <= position_.y + size_.y;
+        return UiElement::containsPoint(point);
     }
 
     void UiButton::click() {

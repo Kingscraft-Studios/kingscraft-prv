@@ -90,7 +90,7 @@ namespace lve {
 
     void MainMenu::createTitle() {
         title_.setAnchor({0.5f, 0.0f}, {-300.0f, 100.0f});
-        title_.setSize({600.0f, 70.0f});
+        title_.setNormalizedSize({0.3125f, 0.0648f});
         title_.setText("KINGSCRAFT");
         title_.setFont("default");
         title_.setFontSize(64.0f);
@@ -100,7 +100,7 @@ namespace lve {
         uiSystem_.addElement(&title_);
 
         subtitle_.setAnchor({0.5f, 0.0f}, {-200.0f, 170.0f});
-        subtitle_.setSize({400.0f, 30.0f});
+        subtitle_.setNormalizedSize({0.2083f, 0.0278f});
         subtitle_.setText("THE SANDBOX WITHOUT LIMITS");
         subtitle_.setFont("default");
         subtitle_.setFontSize(18.0f);
@@ -116,10 +116,9 @@ namespace lve {
 
         // "ENTER WORLD" button
         enterWorldButton_.setAnchor({0.0f, 0.45f}, {140.0f, 0.0f});
-        enterWorldButton_.setSize({300.0f, 50.0f});
+        enterWorldButton_.setNormalizedSize({0.15625f, 0.0463f});
         enterWorldButton_.setText("ENTER WORLD");
         enterWorldButton_.setFont("default");
-        enterWorldButton_.setFontSize(38.0f);
         enterWorldButton_.setNormalColor(TRANSPARENT);
         enterWorldButton_.setHoverColor(TRANSPARENT);
         enterWorldButton_.setNormalTextColor(GOLD_DARK);
@@ -132,7 +131,7 @@ namespace lve {
 
         // Selection bar for "ENTER WORLD" — 20px left of button, vertically centered (50-40)/2=5
         selectionBarEnter_.setAnchor({0.0f, 0.45f}, {120.0f, 5.0f});
-        selectionBarEnter_.setSize({4.0f, 40.0f});
+        selectionBarEnter_.setNormalizedSize({0.0021f, 0.0370f});
         selectionBarEnter_.setColor(GOLD);
         selectionBarEnter_.setStyleIndex(g_styleSelBar);
         selectionBarEnter_.setName("SelBarEnter");
@@ -140,10 +139,9 @@ namespace lve {
 
         // "QUIT GAME" button — 60px below row 1 (50px button + 10px spacing)
         quitButton_.setAnchor({0.0f, 0.45f}, {140.0f, 60.0f});
-        quitButton_.setSize({300.0f, 50.0f});
+        quitButton_.setNormalizedSize({0.15625f, 0.0463f});
         quitButton_.setText("QUIT GAME");
         quitButton_.setFont("default");
-        quitButton_.setFontSize(38.0f);
         quitButton_.setNormalColor(TRANSPARENT);
         quitButton_.setHoverColor(TRANSPARENT);
         quitButton_.setNormalTextColor(GOLD_DARK);
@@ -156,7 +154,7 @@ namespace lve {
 
         // Selection bar for "QUIT GAME" — 20px left of button, 65px from anchor (60+5)
         selectionBarQuit_.setAnchor({0.0f, 0.45f}, {120.0f, 65.0f});
-        selectionBarQuit_.setSize({4.0f, 40.0f});
+        selectionBarQuit_.setNormalizedSize({0.0021f, 0.0370f});
         selectionBarQuit_.setColor(GOLD);
         selectionBarQuit_.setStyleIndex(g_styleSelBar);
         selectionBarQuit_.setName("SelBarQuit");

@@ -5,6 +5,7 @@
 #include "Core/Resources/ModelParser.hpp"
 #include "Bus/MessageBus.hpp"
 #include "Threads/Logger.hpp"
+#include "Util/LogUtils.hpp"
 
 namespace lve {
 
@@ -29,9 +30,7 @@ namespace lve {
                 + " elements, " + std::to_string(quadsTotal)
                 + " quads, " + std::to_string(texCount)
                 + " textures (" + std::to_string(rawBytes) + " raw bytes)";
-            MessageBus::Get().send(ThreadName::Engine, [msg]() {
-                Logger::Get().log(LogLevel::INFO, ThreadName::Registration, msg);
-            });
+            LogUtils::info(ThreadName::Registration, msg);
 
             if (key == GRASS_BLOCK)
                 r.reg(GRASS_BLOCK, std::make_unique<GrassBlock>(std::move(model)));

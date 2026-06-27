@@ -4,6 +4,8 @@
 #include <string>
 #include <cstdint>
 
+#include "../Engine/UiLabel.hpp"
+
 namespace lve {
 
     class UiEngine;
@@ -38,10 +40,28 @@ namespace lve {
         uint32_t getStyleIndex() const { return styleIndex_; }
         virtual uint32_t getActiveStyleIndex() const { return styleIndex_; }
 
+        // Text accessors — delegates to label_
+        void setText(const std::string& text) { label_.text = text; }
+        void setFont(const std::string& fontName) { label_.fontName = fontName; }
+        void setFontSize(float size) { label_.fontSize = size; }
+        void setTextCentered(bool centered) { label_.centered = centered; }
+        const std::string& getText() const { return label_.text; }
+        bool isTextCentered() const { return label_.centered; }
+
         void setAnchor(glm::vec2 normPos, glm::vec2 pixOffset) {
             normalizedPos_ = normPos;
             pixelOffset_ = pixOffset;
         }
+        void setNormalizedSize(glm::vec2 normSize) { normalizedSize_ = normSize; }
+
+        void setInteractionSize(glm::vec2 size) { interactionSize_ = size; }
+        glm::vec2 getInteractionSize() const {
+            return (interactionSize_.x > 0.0f) ? interactionSize_ : size_;
+        }
+        void setInteractionPadding(float px) {
+            interactionSize_ = size_ + glm::vec2{px * 2.0f};
+        }
+
         void setFillParent() {
             normalizedPos_ = {0.0f, 0.0f};
             pixelOffset_ = {0.0f, 0.0f};
@@ -61,6 +81,8 @@ namespace lve {
         void adjustPixelOffset(float dx, float dy) { pixelOffset_.x += dx; pixelOffset_.y += dy; }
 
     protected:
+        void renderLabel(UiEngine& engine, glm::vec4 color);
+
         glm::vec2 position_{0.0f};
         glm::vec2 size_{0.0f};
         glm::vec4 color_{1.0f};
@@ -71,6 +93,8 @@ namespace lve {
         glm::vec2 normalizedPos_{0.0f};
         glm::vec2 normalizedSize_{0.0f};
         glm::vec2 pixelOffset_{0.0f};
+        glm::vec2 interactionSize_{0.0f};
+        Label label_;
     };
 
 } // namespace lve

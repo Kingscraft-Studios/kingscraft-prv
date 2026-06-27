@@ -6,6 +6,8 @@
 #include <chrono>
 #include <exception>
 
+#include "Util/LogUtils.hpp"
+
 namespace lve {
 
 void ResourceLoader::run() {
@@ -19,11 +21,9 @@ void ResourceLoader::run() {
                 try {
                     msg.payload();
                 } catch (const std::exception& e) {
-                    Logger::Get().log(LogLevel::ERROR, ThreadName::Resource,
-                        std::string("Resource thread exception: ") + e.what());
+                    LogUtils::error(ThreadName::Resource, StringBuilder::build("Resource thread exception: ", e.what()));
                 } catch (...) {
-                    Logger::Get().log(LogLevel::ERROR, ThreadName::Resource,
-                        "Resource thread caught unknown exception");
+                    LogUtils::error(ThreadName::Resource, "Resource thread caught unknown exception");
                 }
             }
         }

@@ -17,14 +17,9 @@ namespace lve {
         void render(UiEngine& engine) override;
         bool containsPoint(glm::vec2 point) const override;
 
-        void setText(const std::string& text) { text_ = text; }
-        void setFont(const std::string& fontName) { fontName_ = fontName; }
-        void setFontSize(float size) { fontSize_ = size; }
         void setOnClick(std::function<void()> callback) { onClick_ = std::move(callback); }
         void setHandlerName(const std::string& name) { handlerName_ = name; }
 
-        const std::string& getText() const { return text_; }
-        float getFontSize() const { return fontSize_; }
         const std::string& getHandlerName() const { return handlerName_; }
 
         void setHovered(bool hovered) { isHovered_ = hovered; }
@@ -32,11 +27,8 @@ namespace lve {
 
         void setNormalColor(glm::vec4 color) { normalColor_ = color; }
         void setHoverColor(glm::vec4 color) { hoverColor_ = color; }
-        void setTextColor(glm::vec4 color) { textColor_ = color; }
-
         const glm::vec4& getNormalColor() const { return normalColor_; }
         const glm::vec4& getHoverColor() const { return hoverColor_; }
-        const glm::vec4& getTextColor() const { return textColor_; }
 
         void setHoverStyleIndex(uint32_t index) { hoverStyleIndex_ = index; }
         uint32_t getHoverStyleIndex() const { return hoverStyleIndex_; }
@@ -53,15 +45,11 @@ namespace lve {
         void click();
 
     private:
-        std::string text_;
-        std::string fontName_;
         std::string handlerName_;
-        float fontSize_ = 24.0f;
         bool isHovered_ = false;
 
         glm::vec4 normalColor_{0.3f, 0.3f, 0.3f, 1.0f};
         glm::vec4 hoverColor_{0.5f, 0.5f, 0.5f, 1.0f};
-        glm::vec4 textColor_{1.0f, 1.0f, 1.0f, 1.0f};
         glm::vec4 normalTextColor_{1.0f, 1.0f, 1.0f, 1.0f};
         glm::vec4 hoverTextColor_{1.0f, 1.0f, 1.0f, 1.0f};
 

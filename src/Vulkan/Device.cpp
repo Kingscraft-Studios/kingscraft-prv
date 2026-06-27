@@ -8,26 +8,16 @@
 
 #include "Bus/MessageBus.hpp"
 #include "Threads/Logger.hpp"
+#include "Util/LogUtils.hpp"
 
 namespace lve {
 
     // local callback functions
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-            VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-            VkDebugUtilsMessageTypeFlagsEXT messageType,
-            const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-            void *pUserData) {
-
-        LogLevel level;
-
-        if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
-            level = LogLevel::ERROR;
-        else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-            level = LogLevel::WARN;
-        else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
-            level = LogLevel::INFO;
-        else
-            level = LogLevel::DEBUG;
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+    void* pUserData) {
 
         std::string prefix;
 
@@ -40,11 +30,26 @@ namespace lve {
         if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
             prefix += "[Performance] ";
 
-        std::string line = StringBuilder::build(prefix, "Validation Layer: ", pCallbackData->pMessage);
+        std::string line = StringBuilder::build(
+            prefix,
+            "Validation Layer: ",
+            pCallbackData->pMessage
+        );
 
-        MessageBus::Get().send(ThreadName::Engine, [level, line]() {
-            Logger::Get().log(level, ThreadName::Renderer, line);
-        });
+        ThreadName sender = ThreadName::Renderer;
+
+        if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+            LogUtils::error(sender, line);
+        }
+        else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+            LogUtils::warn(sender, line);
+        }
+        else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
+            LogUtils::info(sender, line);
+        }
+        else {
+            LogUtils::debug(sender, line);
+        }
 
         return VK_FALSE;
     }
@@ -144,9 +149,7 @@ namespace lve {
         if (deviceCount == 0) {
             throw std::runtime_error("failed to find GPUs with Vulkan support!");
         }
-        MessageBus::Get().send(ThreadName::Engine, [deviceCount]() {
-            Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, StringBuilder::build("Device Count: ", deviceCount));
-        });
+        LogUtils::info(ThreadName::Renderer, StringBuilder::build("Device Count: ", deviceCount));
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
@@ -166,14 +169,17 @@ namespace lve {
         uint32_t major = VK_API_VERSION_MAJOR(properties.apiVersion);
         uint32_t minor = VK_API_VERSION_MINOR(properties.apiVersion);
         uint32_t patch = VK_API_VERSION_PATCH(properties.apiVersion);
-        //TODO: use VkPhysicalDeviceDriverProperties through the vkGetPhysicalDeviceProperties2
+        // TODO: use VkPhysicalDeviceDriverProperties through the vkGetPhysicalDeviceProperties2
         auto driverVersion = properties.driverVersion;
 
-        MessageBus::Get().send(ThreadName::Engine, [deviceName, major, minor, patch, driverVersion]() {
-            Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, StringBuilder::build("Selected GPU: ", deviceName));
-            Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, StringBuilder::build("Vulkan API: ", major, ".", minor, ".", patch));
-            Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, StringBuilder::build("Driver Version: ", driverVersion));
-        });
+        LogUtils::info(ThreadName::Renderer,
+            StringBuilder::build("Selected GPU: ", deviceName));
+
+        LogUtils::info(ThreadName::Renderer,
+            StringBuilder::build("Vulkan API: ", major, ".", minor, ".", patch));
+
+        LogUtils::info(ThreadName::Renderer,
+            StringBuilder::build("Driver Version: ", driverVersion));
     }
 
     void Device::createLogicalDevice() {
@@ -466,9 +472,11 @@ namespace lve {
         auto requiredExtensions = getRequiredExtensions();
 
         // Print summary
-        Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, StringBuilder::build("Available Vulkan Extensions: ", extensionCount));
+        LogUtils::info(ThreadName::Renderer,
+            StringBuilder::build("Available Vulkan Extensions: ", extensionCount));
 
-        Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, StringBuilder::build("Required Extensions: ", requiredExtensions.size()));
+        LogUtils::info(ThreadName::Renderer,
+            StringBuilder::build("Required Extensions: ", requiredExtensions.size()));
 
         // Validation check
         for (const auto& required : requiredExtensions) {

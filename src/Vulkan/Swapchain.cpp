@@ -9,6 +9,7 @@
 #include "Bus/MessageBus.hpp"
 #include "Threads/Logger.hpp"
 #include "Renderer/RendererSettings.hpp"
+#include "Util/LogUtils.hpp"
 
 namespace lve {
 
@@ -150,17 +151,12 @@ namespace lve {
 
         for (const auto &mode : availablePresentModes) {
             if (mode == preferred) {
-                MessageBus::Get().send(ThreadName::Engine, [vsync]() {
-                    Logger::Get().log(LogLevel::INFO, ThreadName::Renderer,
-                        vsync ? "Present Mode: FIFO (V-Sync ON)" : "Present Mode: Immediate (V-Sync OFF)");
-                });
+                LogUtils::info(ThreadName::Renderer, vsync ? "Present Mode: FIFO (V-Sync ON)" : "Present Mode: Immediate (V-Sync OFF)");
                 return mode;
             }
         }
 
-        MessageBus::Get().send(ThreadName::Engine, []() {
-                    Logger::Get().log(LogLevel::INFO, ThreadName::Renderer, "Present Mode: FIFO (V-Sync ON, fallback)");
-                });
+        LogUtils::info(ThreadName::Renderer, "Present Mode: FIFO (V-Sync ON, fallback)");
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 

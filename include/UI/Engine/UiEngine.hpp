@@ -5,8 +5,8 @@
 #include "UI/Engine/UiBatchQueue.hpp"
 #include "UI/Engine/UiFontAtlas.hpp"
 #include "UI/Engine/UiRenderer.hpp"
-#include "UI/Elements/UiRect.hpp"
-#include "UI/UiStyle.hpp"
+#include "UI/Debug/UiDebugEditor.hpp"
+#include "UiStyle.hpp"
 #include <glm/glm.hpp>
 #include <memory>
 #include <string>
@@ -53,9 +53,9 @@ namespace lve {
         uint32_t allocateElementId();
         void setElementStyle(uint32_t id, uint32_t styleIndex);
 
-        // Debug editing mode
+        // Debug editing mode — forwards to UiDebugEditor
         void setDebugMode(bool on);
-        bool isDebugModeOn() const { return debugMode_; }
+        bool isDebugModeOn() const;
         void logSelectedElementPosition();
         void handleDebugMouseMove(float x, float y, const std::vector<UiElement*>& elements, float parentW, float parentH);
         void handleDebugMouseButton(int button, int action, float x, float y, const std::vector<UiElement*>& elements);
@@ -68,7 +68,6 @@ namespace lve {
         UiRenderer& getRenderer() { return *renderer_; }
 
     private:
-        void ensureDebugOverlay();
         void uploadPendingStyles();
 
         Device& device_;
@@ -90,26 +89,7 @@ namespace lve {
         uint32_t lastDirty_ = 0;
         bool stylePoolDirty_ = false;
 
-        // Master Switch for Enabling or disabling
-        bool debugEnabled_ = true;
-        bool debugMode_ = false;
-        UiElement* selectedElement_ = nullptr;
-        UiElement* hoveredElement_ = nullptr;
-        bool isDragging_ = false;
-        glm::vec2 lastMouse_{0.0f};
-        glm::vec2 dragStartMouse_{0.0f};
-
-        // Debug overlay rects
-        UiRect debugHoverRect_;
-        UiRect debugBorderTop_;
-        UiRect debugBorderBottom_;
-        UiRect debugBorderLeft_;
-        UiRect debugBorderRight_;
-        uint32_t debugElementHoverId_ = 0;
-        uint32_t debugElementSelectId_ = 0;
-        uint32_t debugHoverStyle_ = 0;
-        uint32_t debugBorderStyle_ = 0;
-        bool debugOverlayReady_ = false;
+        std::unique_ptr<UiDebugEditor> debugEditor_;
     };
 
 } // namespace lve

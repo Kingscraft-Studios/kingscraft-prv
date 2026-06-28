@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <functional>
 #include <condition_variable>
+#include <chrono>
+#include <stdexcept>
 #include <type_traits>
 
 #include "Bus/Message.hpp"
@@ -43,9 +45,17 @@ public:
                 }
             }
         );
-        while (!send(target, [payload]() { (*payload)(); })) {
-            std::this_thread::yield();
+        constexpr auto kRetryDelay = std::chrono::microseconds(100);
+        constexpr auto kTimeout = std::chrono::milliseconds(500);
+
+        const auto start = std::chrono::steady_clock::now();
+        while (std::chrono::steady_clock::now() - start < kTimeout) {
+            if (send(target, [payload]() { (*payload)(); }))
+                return;
+            std::this_thread::sleep_for(kRetryDelay);
         }
+        throw std::runtime_error(
+            "MessageBus request timed out: target thread not responding");
     }
 
     void signalQuit();

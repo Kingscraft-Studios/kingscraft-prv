@@ -14,20 +14,20 @@ namespace lve {
         instance_ = this;
         keybinds_->setWindow(window.getGLFWWindow());
 
-        keybinds_->onPress({Keys::F11}, [this]() {
+        keybinds_->onPress(BindLayer::Global, {Keys::F11}, [this]() {
             window.toggleFullscreen();
             requestSwapchainRecreate = true;
         });
 
-        keybinds_->onPress({Keys::ESCAPE}, [this]() {
+        keybinds_->onPress(BindLayer::Global, {Keys::ESCAPE}, [this]() {
             window.setWindowClose();
         });
 
-        keybinds_->onPress({Keys::F3, Keys::F6}, [this]() {
+        keybinds_->onPress(BindLayer::Global, {Keys::F3, Keys::F6}, [this]() {
             uiSystem->setDebugMode(!uiSystem->isDebugModeOn());
         });
 
-        keybinds_->onPress({Keys::F7}, [this]() {
+        keybinds_->onPress(BindLayer::Global, {Keys::F7}, [this]() {
             if (uiSystem->isDebugModeOn())
                 uiSystem->logSelectedElementPosition();
         });
@@ -55,11 +55,11 @@ namespace lve {
             keybinds_->onChar(codepoint);
         });
 
-        keybinds_->setNoesisKeyCallback([this](int key, int action) {
+        keybinds_->setUiKeyCallback([this](int key, int action) {
             uiSystem->onKey(key, action);
         });
 
-        keybinds_->setNoesisCharCallback([this](unsigned int codepoint) {
+        keybinds_->setUiCharCallback([this](unsigned int codepoint) {
             uiSystem->onChar(codepoint);
         });
 

@@ -2,11 +2,11 @@ cmake_minimum_required(VERSION 3.31)
 project(godscraft)
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++ -s")
+add_compile_options(-Wall -Wextra -Wpedantic -Wno-unused-parameter)
+set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
+set(CMAKE_EXE_LINKER_FLAGS_RELEASE "-s ${CMAKE_EXE_LINKER_FLAGS}")
 
 add_definitions(-DGLFW_STATIC)
-
-set(NOESIS_DIR ${CMAKE_SOURCE_DIR}/libs/NoesisGUI)
 
 # Project Include
 include_directories(include)
@@ -22,6 +22,7 @@ add_subdirectory(libs/glfw)
 # Project Sources
 file(GLOB_RECURSE SOURCE_FILES src/*.cpp)
 file(GLOB_RECURSE HEADER_FILES include/*.hpp)
+set(CMAKE_CONFIGURE_DEPENDS ${ENGINE_SRC} ${HEADER_FILES})
 
 add_executable(godscraft
         ${SOURCE_FILES}

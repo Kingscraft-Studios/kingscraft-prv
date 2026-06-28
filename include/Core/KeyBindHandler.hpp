@@ -9,29 +9,38 @@
 
 namespace lve {
 
+    enum class BindLayer {
+        Global,
+        Screen,
+        UI
+    };
+
     class KeyBindHandler {
     public:
         using Callback = std::function<void()>;
         using Chord = std::vector<int>;
-        using NoesisKeyCallback = std::function<void(int key, int action)>;
-        using NoesisCharCallback = std::function<void(unsigned int codepoint)>;
+        using UiKeyCallback = std::function<void(int key, int action)>;
+        using UiCharCallback = std::function<void(unsigned int codepoint)>;
 
         void setWindow(GLFWwindow* window) { window_ = window; }
 
         void onKeyEvent(int key, int scancode, int action, int mods) {
             if (key < 0 || key > GLFW_KEY_LAST) return;
             currKeys_[key] = (action == GLFW_PRESS || action == GLFW_REPEAT);
-            if (noesisKeyCallback_ && noesisInputEnabled_)
-                noesisKeyCallback_(key, action);
+            if (uiKeyCallback_ && layerEnabled_[static_cast<int>(BindLayer::UI)])
+                uiKeyCallback_(key, action);
         }
 
         void onChar(unsigned int codepoint) {
-            if (noesisCharCallback_ && noesisInputEnabled_)
-                noesisCharCallback_(codepoint);
+            if (uiCharCallback_ && layerEnabled_[static_cast<int>(BindLayer::UI)])
+                uiCharCallback_(codepoint);
         }
 
         void update() {
             for (size_t i = 0; i < bindings_.size(); i++) {
+                if (!layerEnabled_[static_cast<int>(bindings_[i].layer)])
+                    continue;
+
                 bool now = isSatisfied(i) && !isSuppressed(i);
                 bool was = prevSatisfied_[i];
 
@@ -50,24 +59,32 @@ namespace lve {
         bool isPressed(int key) const { return currKeys_[key] && !prevKeys_[key]; }
         bool isReleased(int key) const { return !currKeys_[key] && prevKeys_[key]; }
 
-        void onPress(Chord chord, Callback cb) {
-            bindings_.push_back({std::move(chord), std::move(cb), {}});
+        void onPress(BindLayer layer, Chord chord, Callback cb) {
+            bindings_.push_back({layer, std::move(chord), std::move(cb), {}});
             prevSatisfied_.push_back(false);
         }
 
-        void onRelease(Chord chord, Callback cb) {
-            bindings_.push_back({std::move(chord), {}, std::move(cb)});
+        void onRelease(BindLayer layer, Chord chord, Callback cb) {
+            bindings_.push_back({layer, std::move(chord), {}, std::move(cb)});
             prevSatisfied_.push_back(false);
         }
 
-        void setNoesisKeyCallback(NoesisKeyCallback cb) { noesisKeyCallback_ = std::move(cb); }
-        void setNoesisCharCallback(NoesisCharCallback cb) { noesisCharCallback_ = std::move(cb); }
-        void setNoesisInputEnabled(bool enabled) { noesisInputEnabled_ = enabled; }
+        void setUiKeyCallback(UiKeyCallback cb) { uiKeyCallback_ = std::move(cb); }
+        void setUiCharCallback(UiCharCallback cb) { uiCharCallback_ = std::move(cb); }
+
+        void setLayerEnabled(BindLayer layer, bool enabled) {
+            layerEnabled_[static_cast<int>(layer)] = enabled;
+        }
+
+        bool isLayerEnabled(BindLayer layer) const {
+            return layerEnabled_[static_cast<int>(layer)];
+        }
 
         void clear() { bindings_.clear(); prevSatisfied_.clear(); }
 
     private:
         struct Binding {
+            BindLayer layer;
             Chord chord;
             Callback onPress;
             Callback onRelease;
@@ -105,9 +122,9 @@ namespace lve {
         std::array<bool, GLFW_KEY_LAST + 1> currKeys_{};
         std::vector<Binding> bindings_;
         std::vector<bool> prevSatisfied_;
-        NoesisKeyCallback noesisKeyCallback_;
-        NoesisCharCallback noesisCharCallback_;
-        bool noesisInputEnabled_ = true;
+        UiKeyCallback uiKeyCallback_;
+        UiCharCallback uiCharCallback_;
+        std::array<bool, 3> layerEnabled_{true, true, true};
     };
 
 } // namespace lve

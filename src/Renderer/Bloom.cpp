@@ -389,11 +389,6 @@ void Bloom::createDescriptors() {
 void Bloom::updateFrameDescriptor(uint32_t i) {
     if (i >= MAX_FRAMES_IN_FLIGHT) return;
 
-    VkDescriptorBufferInfo blurBufferInfo{};
-    blurBufferInfo.buffer = frames_[i].blurUBO->getHandle();
-    blurBufferInfo.offset = 0;
-    blurBufferInfo.range = sizeof(BlurUniformData);
-
     VkWriteDescriptorSet write{};
     write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 

@@ -147,7 +147,6 @@ namespace lve {
             return;
         }
 
-        glm::vec2 prevPoint = lastMouse_;
         lastMouse_ = point;
 
         // Hover highlight

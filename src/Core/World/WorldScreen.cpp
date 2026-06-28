@@ -61,7 +61,7 @@ namespace lve {
         camera_.setRotation(0.0f, -35.0f);
 
         glfwSetInputMode(window.getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        keybinds.setNoesisInputEnabled(false);
+        keybinds.setLayerEnabled(BindLayer::UI, false);
         cursorCaptured_ = true;
         lastMouseX_ = window.getLastX();
         lastMouseY_ = window.getLastY();
@@ -198,7 +198,7 @@ namespace lve {
             renderer.getWorldRenderPass(),
             renderer.getWorldFramebuffer(imageIndex),
             {{{0.4f, 0.6f, 0.9f, 1.0f}}, {1.0f, 0}},
-            false
+            true
         };
     }
 

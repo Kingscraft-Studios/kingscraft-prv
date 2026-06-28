@@ -1,0 +1,15 @@
+Category                       Score (0-100)
+
+Architecture & Design	       70
+Code Quality	               72
+Performance & Optimization	   68
+API User-Friendliness	       72
+Graphics / Rendering	       65
+Threading & Concurrency	       60
+Completeness	               35
+Documentation	               20
+Error Handling & Robustness	   45
+Build System & Tooling	       50
+
+
+Overall	                       55

@@ -1,4 +1,5 @@
 #include "Core/World/Chunk.hpp"
+#include <cstring>
 
 namespace lve {
 
@@ -18,36 +19,70 @@ namespace lve {
 
     void Chunk::upload() {
         VkDeviceSize vertexSize = vertices_.size() * sizeof(ChunkVertex);
+        VkDeviceSize indexSize = indices_.size() * sizeof(uint16_t);
+        VkDeviceSize totalSize = vertexSize + indexSize;
+        if (totalSize == 0) return;
+
         if (vertexSize > 0) {
             vertexBuffer_ = std::make_unique<Buffer>(
-                device_,
-                vertexSize,
-                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-            );
-            vertexBuffer_->write(vertices_.data(), 0, vertexSize);
+                device_, vertexSize,
+                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         }
-
-        VkDeviceSize indexSize = indices_.size() * sizeof(uint16_t);
         if (indexSize > 0) {
             indexBuffer_ = std::make_unique<Buffer>(
-                device_,
-                indexSize,
-                VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-            );
-            indexBuffer_->write(indices_.data(), 0, indexSize);
-            indexCount_ = static_cast<uint32_t>(indices_.size());
+                device_, indexSize,
+                VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         }
 
+        StagingAllocation staging = device_.getStagingArena().alloc(totalSize);
+        if (vertexSize > 0) std::memcpy(staging.data, vertices_.data(), vertexSize);
+        if (indexSize > 0) std::memcpy(static_cast<char*>(staging.data) + vertexSize, indices_.data(), indexSize);
+
+        if (uploadCompleteFence_ == VK_NULL_HANDLE) {
+            VkFenceCreateInfo info{};
+            info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+            vkCreateFence(device_.device(), &info, nullptr, &uploadCompleteFence_);
+        } else {
+            vkResetFences(device_.device(), 1, &uploadCompleteFence_);
+        }
+
+        VkCommandBuffer cmd = device_.beginSingleTimeCommands();
+        uploadCmd_ = cmd;
+        if (vertexSize > 0) {
+            VkBufferCopy copy{};
+            copy.srcOffset = staging.offset;
+            copy.size = vertexSize;
+            vkCmdCopyBuffer(cmd, staging.buffer, vertexBuffer_->getHandle(), 1, &copy);
+        }
+        if (indexSize > 0) {
+            VkBufferCopy copy{};
+            copy.srcOffset = staging.offset + vertexSize;
+            copy.size = indexSize;
+            vkCmdCopyBuffer(cmd, staging.buffer, indexBuffer_->getHandle(), 1, &copy);
+        }
+        device_.submitAsync(cmd, uploadCompleteFence_);
+
+        indexCount_ = static_cast<uint32_t>(indices_.size());
         vertices_.clear();
         vertices_.shrink_to_fit();
         indices_.clear();
         indices_.shrink_to_fit();
     }
 
-    void Chunk::bindAndDraw(VkCommandBuffer cmd) const {
+    void Chunk::bindAndDraw(VkCommandBuffer cmd) {
         if (!vertexBuffer_ || !indexBuffer_) return;
+        if (uploadCompleteFence_ != VK_NULL_HANDLE) {
+            VkResult r = vkGetFenceStatus(device_.device(), uploadCompleteFence_);
+            if (r == VK_NOT_READY) return;
+            if (uploadCmd_ != VK_NULL_HANDLE) {
+                vkFreeCommandBuffers(device_.device(), device_.getCommandPool(), 1, &uploadCmd_);
+                uploadCmd_ = VK_NULL_HANDLE;
+            }
+            vkDestroyFence(device_.device(), uploadCompleteFence_, nullptr);
+            uploadCompleteFence_ = VK_NULL_HANDLE;
+        }
 
         VkBuffer vb[] = {vertexBuffer_->getHandle()};
         VkDeviceSize offsets[] = {0};
@@ -59,6 +94,15 @@ namespace lve {
     void Chunk::cleanup() {
         vertexBuffer_.reset();
         indexBuffer_.reset();
+        if (uploadCompleteFence_ != VK_NULL_HANDLE) {
+            vkWaitForFences(device_.device(), 1, &uploadCompleteFence_, VK_TRUE, UINT64_MAX);
+            vkDestroyFence(device_.device(), uploadCompleteFence_, nullptr);
+            uploadCompleteFence_ = VK_NULL_HANDLE;
+        }
+        if (uploadCmd_ != VK_NULL_HANDLE) {
+            vkFreeCommandBuffers(device_.device(), device_.getCommandPool(), 1, &uploadCmd_);
+            uploadCmd_ = VK_NULL_HANDLE;
+        }
     }
 
 } // namespace lve

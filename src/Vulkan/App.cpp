@@ -180,6 +180,7 @@ namespace lve {
             uiSystem->resize(newExtent.width, newExtent.height);
             return;
         }
+        double cpuStart = TimeUtil::uptimeSeconds();
         VkCommandBuffer cmd = renderer->getActiveCommandBuffer();
         VkExtent2D extent = renderer->getExtent();
         uint32_t imageIndex = renderer->getCurrentImageIndex();
@@ -223,6 +224,8 @@ namespace lve {
                 postProcessor_->postScene(frameCtx);
             }
         });
+
+        cpuFrameTimeMs_ = (TimeUtil::uptimeSeconds() - cpuStart) * 1000.0;
 
         if (!renderer->endFrame()) {
             window.resetWindowResizedFlag();

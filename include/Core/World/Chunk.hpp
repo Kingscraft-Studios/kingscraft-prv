@@ -52,7 +52,7 @@ namespace lve {
         std::vector<uint16_t>& indices() { return indices_; }
 
         void upload();
-        void bindAndDraw(VkCommandBuffer cmd) const;
+        void bindAndDraw(VkCommandBuffer cmd);
         void cleanup();
 
     private:
@@ -68,6 +68,9 @@ namespace lve {
 
         std::unique_ptr<Buffer> vertexBuffer_;
         std::unique_ptr<Buffer> indexBuffer_;
+
+        VkFence uploadCompleteFence_ = VK_NULL_HANDLE;
+        VkCommandBuffer uploadCmd_ = VK_NULL_HANDLE;
     };
 
 } // namespace lve

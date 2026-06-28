@@ -5,6 +5,7 @@
 #include "Core/Keys.hpp"
 #include "Core/World/Chunk.hpp"
 #include "Core/World/World.hpp"
+#include "UI/Debug/UiFpsCounter.hpp"
 #include "Vulkan/Pipeline.hpp"
 #include <memory>
 #include <glm/glm.hpp>
@@ -40,6 +41,7 @@ namespace lve {
         std::unique_ptr<World> world_;
 
         Camera camera_;
+        UiFpsCounter fpsCounter_;
         double lastMouseX_ = 0.0;
         double lastMouseY_ = 0.0;
         bool cursorCaptured_ = false;

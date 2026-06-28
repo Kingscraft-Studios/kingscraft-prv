@@ -62,6 +62,9 @@ namespace lve {
 
         glfwSetInputMode(window.getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         keybinds.setLayerEnabled(BindLayer::UI, false);
+        fpsCounter_.init(App::get().getUiSystem());
+        App::get().getUiSystem().resize(static_cast<int>(extent_.width),
+                                        static_cast<int>(extent_.height));
         cursorCaptured_ = true;
         lastMouseX_ = window.getLastX();
         lastMouseY_ = window.getLastY();
@@ -94,6 +97,9 @@ namespace lve {
     }
 
     void WorldScreen::render(const FrameContext& ctx) {
+        fpsCounter_.setCpuGpuTimes(App::get().getCpuFrameTimeMs(),
+                                   App::get().getRenderer().getGpuFrameTimeMs());
+        fpsCounter_.update();
         world_->flushPendingCleanup();
         world_->processCompletedChunks();
         if (!pipeline_) return;
@@ -166,6 +172,8 @@ namespace lve {
                 chunk->bindAndDraw(ctx.cmd);
             }
         }
+
+        App::get().getUiSystem().render(ctx.cmd, ctx.renderPass);
     }
 
     void WorldScreen::renderGlow(const FrameContext& ctx) {
@@ -173,6 +181,7 @@ namespace lve {
     }
 
     void WorldScreen::cleanup() {
+        fpsCounter_.cleanup(App::get().getUiSystem());
         if (cursorCaptured_) {
             glfwSetInputMode(App::get().getWindow().getGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             cursorCaptured_ = false;

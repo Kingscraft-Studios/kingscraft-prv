@@ -1,8 +1,10 @@
 #pragma once
 
 #include "Window.hpp"
+#include "StagingArena.hpp"
 
 // std lib headers
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -108,6 +110,8 @@ namespace lve {
 
         void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
+        void submitAsync(VkCommandBuffer cmd, VkFence fence);
+
         void copyBufferToImage(
                 VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layerCount);
 
@@ -119,6 +123,8 @@ namespace lve {
 
         VkPhysicalDeviceProperties properties;
         VkInstance getInstance() { return instance; }
+
+        StagingArena& getStagingArena() { return *stagingArena_; }
 
     private:
         void createInstance();
@@ -163,6 +169,8 @@ namespace lve {
 
         const std::vector<const char *> validationLayers = {"VK_LAYER_KHRONOS_validation"};
         const std::vector<const char *> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
+        std::unique_ptr<StagingArena> stagingArena_;
     };
 
 }  // namespace lve

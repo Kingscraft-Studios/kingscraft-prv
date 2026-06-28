@@ -53,11 +53,13 @@ public:
     VkRenderPass getWorldRenderPass() const { return worldRenderPass_->getHandle(); }
     VkFramebuffer getWorldFramebuffer(uint32_t imageIndex) const { return worldFramebuffers_[imageIndex]; }
     VkFormat getDepthFormat() const { return depthFormat_; }
+    double getGpuFrameTimeMs() const { return gpuFrameTimeMs_; }
 
 private:
     void createCommandBuffers();
     void createWorldResources();
     void destroyWorldResources();
+    void createQueryPool();
 
     Device& device_;
     VkExtent2D extent_;
@@ -77,6 +79,10 @@ private:
     std::vector<VkFence> imagesInFlight_;
     uint32_t currentFrame_ = 0;
     uint32_t currentImageIndex_ = 0;
+
+    VkQueryPool gpuQueryPool_ = VK_NULL_HANDLE;
+    double timestampPeriod_ = 1.0;
+    double gpuFrameTimeMs_ = 0.0;
 };
 
 } // namespace lve

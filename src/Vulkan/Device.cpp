@@ -1,4 +1,5 @@
 #include "Vulkan/Device.hpp"
+#include "Vulkan/Buffer.hpp"
 
 // std headers
 #include <cstring>
@@ -89,9 +90,13 @@ namespace lve {
         pickPhysicalDevice();
         createLogicalDevice();
         createCommandPool();
+
+        stagingArena_ = std::make_unique<StagingArena>(*this);
     }
 
     Device::~Device() {
+        stagingArena_.reset();
+
         vkDestroyCommandPool(device_, commandPool, nullptr);
         vkDestroyDevice(device_, nullptr);
 
@@ -692,6 +697,16 @@ namespace lve {
                 1,
                 &region);
         endSingleTimeCommands(commandBuffer);
+    }
+
+    void Device::submitAsync(VkCommandBuffer cmd, VkFence fence) {
+        vkEndCommandBuffer(cmd);
+
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &cmd;
+        vkQueueSubmit(graphicsQueue_, 1, &submitInfo, fence);
     }
 
     void Device::createImageWithInfo(

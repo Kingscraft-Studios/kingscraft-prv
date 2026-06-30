@@ -50,8 +50,6 @@ namespace lve {
         void updateUiDescriptorSet();
         void updateCompositeDescriptorSet();
 
-        static std::vector<char> readFile(const std::string& filename);
-
         Device& device_;
         DescriptorManager& descriptorManager_;
         VkExtent2D extent_;

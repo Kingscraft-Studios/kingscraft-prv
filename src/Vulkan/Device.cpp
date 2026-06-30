@@ -1,5 +1,6 @@
 #include "Vulkan/Device.hpp"
 #include "Vulkan/Buffer.hpp"
+#include "Util/Preloader.hpp"
 
 // std headers
 #include <cstring>
@@ -92,9 +93,31 @@ namespace lve {
         createCommandPool();
 
         stagingArena_ = std::make_unique<StagingArena>(*this);
+
+        VkPipelineCacheCreateInfo cacheInfo{};
+        cacheInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+        auto& preloadData = Preloader::Get().getPipelineCacheData();
+        if (!preloadData.empty()) {
+            cacheInfo.initialDataSize = preloadData.size();
+            cacheInfo.pInitialData = preloadData.data();
+        }
+        vkCreatePipelineCache(device_, &cacheInfo, nullptr, &pipelineCache_);
     }
 
     Device::~Device() {
+        if (pipelineCache_ != VK_NULL_HANDLE) {
+            size_t dataSize;
+            vkGetPipelineCacheData(device_, pipelineCache_, &dataSize, nullptr);
+            if (dataSize > 0) {
+                auto data = std::make_shared<std::vector<char>>(dataSize);
+                vkGetPipelineCacheData(device_, pipelineCache_, &dataSize, data->data());
+                MessageBus::Get().send(ThreadName::Engine, [data]() {
+                    IO::Get().writeFile("pipeline_cache.bin", *data);
+                });
+            }
+            vkDestroyPipelineCache(device_, pipelineCache_, nullptr);
+        }
+
         stagingArena_.reset();
 
         vkDestroyCommandPool(device_, commandPool, nullptr);

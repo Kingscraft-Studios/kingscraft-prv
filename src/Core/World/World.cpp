@@ -33,7 +33,7 @@ namespace lve {
     }
 
     int World::worldToGrid(float worldCoord, int chunkSize) {
-        return static_cast<int>(std::floor(worldCoord / (chunkSize - 1)));
+        return static_cast<int>(std::floor(worldCoord / chunkSize));
     }
 
     bool World::isChunkLoaded(int gridX, int gridZ) const {
@@ -49,8 +49,8 @@ namespace lve {
 
         std::vector<uint8_t> blockIds(static_cast<size_t>(N) * h * N, 0);
 
-        float originX = static_cast<float>(gridX) * (N - 1);
-        float originZ = static_cast<float>(gridZ) * (N - 1);
+        float originX = static_cast<float>(gridX) * N;
+        float originZ = static_cast<float>(gridZ) * N;
 
         for (int z = 0; z < N; ++z) {
             for (int x = 0; x < N; ++x) {
@@ -111,8 +111,8 @@ namespace lve {
             int h = height_;
 
             std::vector<uint8_t> blockIds(static_cast<size_t>(N) * h * N, 0);
-            float originX = static_cast<float>(gx) * (N - 1);
-            float originZ = static_cast<float>(gz) * (N - 1);
+            float originX = static_cast<float>(gx) * N;
+            float originZ = static_cast<float>(gz) * N;
 
             for (int z = 0; z < N; ++z) {
                 for (int x = 0; x < N; ++x) {

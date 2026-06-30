@@ -30,6 +30,14 @@ namespace lve {
     assert(configInfo.renderPass != VK_NULL_HANDLE &&
            "Cannot create graphics pipeline:: no renderPass provided in configInfo");
 
+    VkSpecializationInfo fragSpecInfo{};
+    if (!configInfo.specMapEntries.empty() && !configInfo.specData.empty()) {
+        fragSpecInfo.mapEntryCount = static_cast<uint32_t>(configInfo.specMapEntries.size());
+        fragSpecInfo.pMapEntries = configInfo.specMapEntries.data();
+        fragSpecInfo.dataSize = configInfo.specData.size() * sizeof(uint32_t);
+        fragSpecInfo.pData = configInfo.specData.data();
+    }
+
     VkPipelineShaderStageCreateInfo shaderStages[2];
     shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -45,7 +53,7 @@ namespace lve {
     shaderStages[1].pName = "main";
     shaderStages[1].flags = 0;
     shaderStages[1].pNext = nullptr;
-    shaderStages[1].pSpecializationInfo = nullptr;
+    shaderStages[1].pSpecializationInfo = configInfo.specMapEntries.empty() ? nullptr : &fragSpecInfo;
 
     // --- UPDATED SECTION ---
     // Use the descriptions from configInfo instead of the hardcoded LveModel::Vertex
@@ -82,7 +90,7 @@ namespace lve {
     pipelineInfo.basePipelineIndex = -1;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-    if (vkCreateGraphicsPipelines(device.device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
+    if (vkCreateGraphicsPipelines(device.device(), device.getPipelineCache(), 1, &pipelineInfo, nullptr,
                                   &graphicsPipeline) != VK_SUCCESS) {
         throw std::runtime_error("failed to create graphics pipeline!");
     }

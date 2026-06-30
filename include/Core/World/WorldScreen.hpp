@@ -29,14 +29,12 @@ namespace lve {
 
     private:
         void createPipelineLayout();
-        void createPipeline();
+        void createPipeline(bool disableTextures);
 
         VkExtent2D extent_{};
 
         VkPipelineLayout pipelineLayout_ = VK_NULL_HANDLE;
         std::unique_ptr<Pipeline> pipeline_;
-        std::vector<char> vertShaderCode_;
-        std::vector<char> fragShaderCode_;
 
         std::unique_ptr<World> world_;
 
@@ -45,6 +43,7 @@ namespace lve {
         double lastMouseX_ = 0.0;
         double lastMouseY_ = 0.0;
         bool cursorCaptured_ = false;
+        bool lastDisableTextures_ = false;
     };
 
 } // namespace lve

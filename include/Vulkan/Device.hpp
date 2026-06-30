@@ -30,7 +30,7 @@ namespace lve {
 #ifdef NDEBUG
         const bool enableValidationLayers = false;
 #else
-        const bool enableValidationLayers = true;
+        const bool enableValidationLayers = false;
 #endif
 
         Device(Window &window);
@@ -125,6 +125,7 @@ namespace lve {
         VkInstance getInstance() { return instance; }
 
         StagingArena& getStagingArena() { return *stagingArena_; }
+        VkPipelineCache getPipelineCache() const { return pipelineCache_; }
 
     private:
         void createInstance();
@@ -171,6 +172,7 @@ namespace lve {
         const std::vector<const char *> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
         std::unique_ptr<StagingArena> stagingArena_;
+        VkPipelineCache pipelineCache_ = VK_NULL_HANDLE;
     };
 
 }  // namespace lve

@@ -54,6 +54,8 @@ namespace lve {
         TextureCache& getTextureCache() { return *textureCache_; }
         VkExtent2D getExtent() { return window.getExtent(); }
         double getCpuFrameTimeMs() const { return cpuFrameTimeMs_; }
+        double getCpuTickMs() const { return cpuTickMs_; }
+        double getCpuSubmitMs() const { return cpuSubmitMs_; }
 
     private:
         void drawFrame();
@@ -77,6 +79,8 @@ namespace lve {
         QueueFamilyIndices indices = device.findPhysicalQueueFamilies();
         bool requestSwapchainRecreate = false;
         double cpuFrameTimeMs_ = 0.0;
+        double cpuTickMs_ = 0.0;
+        double cpuSubmitMs_ = 0.0;
         VkExtent2D lastExtent{0, 0};
         RenderState renderState = RenderState::Running;
         double prevTime_ = 0.0;

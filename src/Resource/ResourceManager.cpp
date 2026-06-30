@@ -30,25 +30,6 @@ void ResourceManager::loadTexture(const std::string& path,
     );
 }
 
-void ResourceManager::loadShader(const std::string& path,
-    std::function<void(const std::vector<char>&)> callback) {
-    auto it = shaders_.find(path);
-    if (it != shaders_.end()) {
-        if (callback) callback(it->second);
-        return;
-    }
-
-    MessageBus::Get().request<std::vector<char>>(
-        ThreadName::Engine,
-        [path]() { return IO::Get().readFile(path); },
-        ThreadName::Renderer,
-        [this, path, callback = std::move(callback)](std::vector<char> data) mutable {
-            auto& cached = shaders_[path] = std::move(data);
-            if (callback) callback(cached);
-        }
-    );
-}
-
 void ResourceManager::loadRawImageData(const std::string& path,
     std::function<void(unsigned char* pixels, int width, int height)> callback) {
     MessageBus::Get().request<std::vector<char>>(

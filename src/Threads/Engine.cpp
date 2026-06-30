@@ -3,6 +3,7 @@
 #include "Threads/IO.hpp"
 #include "Bus/MessageBus.hpp"
 #include "Util/TimeUtil.hpp"
+#include "Util/Preloader.hpp"
 
 #include <chrono>
 
@@ -37,12 +38,13 @@ namespace lve {
         IO::Init();
         Logger::Init();
 
-        LogUtils::info(ThreadName::Renderer, "Infrastructure started");
 
         mailbox_ = std::make_shared<Mailbox>();
         MessageBus::Get().subscribe(ThreadName::Engine, mailbox_);
 
-        LogUtils::info(ThreadName::Renderer, "Mailbox subscribed");
+
+        Preloader::Init();
+        Preloader::Get().loadAll();
 
         resLoaderThread_ = std::thread([this]() { resourceLoader_.run(); });
 
@@ -52,7 +54,6 @@ namespace lve {
         renderer_.setQuitCallback([this]() { stop(); });
         rendererThread_ = std::thread([this]() { renderer_.run(); });
 
-        LogUtils::info(ThreadName::Renderer, "Entering game loop");
         while (running_) {
             Message msg;
             while (mailbox_->pop_for(msg, std::chrono::milliseconds(100))) {
@@ -60,14 +61,18 @@ namespace lve {
             }
         }
 
-        LogUtils::info(ThreadName::Renderer, "Stopping renderer");
+        LogUtils::info(ThreadName::Engine, "Shutting down");
         if (rendererThread_.joinable()) rendererThread_.join();
 
         resourceLoader_.stop();
         if (resLoaderThread_.joinable()) resLoaderThread_.join();
 
+        Message msg;
+        while (mailbox_->try_pop(msg)) {
+            if (msg.payload) msg.payload();
+        }
+
         MessageBus::Get().unsubscribe(ThreadName::Engine);
-        LogUtils::info(ThreadName::Renderer, "Shutting down");
 
         Logger::Shutdown();
         IO::Shutdown();

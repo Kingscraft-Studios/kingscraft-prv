@@ -15,6 +15,7 @@ struct FrameContext {
     uint32_t frameIndex = 0;
     uint32_t imageIndex = 0;
 
+    VkQueryPool gpuQueryPool = VK_NULL_HANDLE;
     PostProcessing* postProcessing = nullptr;
 };
 

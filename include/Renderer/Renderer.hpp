@@ -54,6 +54,8 @@ public:
     VkFramebuffer getWorldFramebuffer(uint32_t imageIndex) const { return worldFramebuffers_[imageIndex]; }
     VkFormat getDepthFormat() const { return depthFormat_; }
     double getGpuFrameTimeMs() const { return gpuFrameTimeMs_; }
+    double getTerrainGpuTimeMs() const { return terrainGpuTimeMs_; }
+    VkQueryPool getGpuQueryPool() const { return gpuQueryPool_; }
 
 private:
     void createCommandBuffers();
@@ -83,6 +85,7 @@ private:
     VkQueryPool gpuQueryPool_ = VK_NULL_HANDLE;
     double timestampPeriod_ = 1.0;
     double gpuFrameTimeMs_ = 0.0;
+    double terrainGpuTimeMs_ = 0.0;
 };
 
 } // namespace lve

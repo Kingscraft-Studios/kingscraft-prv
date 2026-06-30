@@ -9,8 +9,8 @@
 
 #include "UI/Engine/UiRenderer.hpp"
 #include "Vulkan/Pipeline.hpp"
+#include "Util/Preloader.hpp"
 
-#include <fstream>
 #include <cstddef>
 #include <stdexcept>
 #include <glm/gtc/matrix_transform.hpp>
@@ -308,8 +308,8 @@ namespace lve {
             throw std::runtime_error("failed to create UI pipeline layout!");
         }
 
-        auto vertCode = readFile("resources/shaders/ui.vert.spv");
-        auto fragCode = readFile("resources/shaders/ui.frag.spv");
+        auto& vertCode = Preloader::Get().getShader("resources/shaders/ui.vert.spv");
+        auto& fragCode = Preloader::Get().getShader("resources/shaders/ui.frag.spv");
 
         PipelineConfigInfo configInfo{};
         Pipeline::defaultPipelineConfigInfo(configInfo);
@@ -371,8 +371,8 @@ namespace lve {
             throw std::runtime_error("failed to create composite pipeline layout!");
         }
 
-        auto vertCode = readFile("resources/shaders/composite.vert.spv");
-        auto fragCode = readFile("resources/shaders/composite.frag.spv");
+        auto& vertCode = Preloader::Get().getShader("resources/shaders/composite.vert.spv");
+        auto& fragCode = Preloader::Get().getShader("resources/shaders/composite.frag.spv");
 
         // Create shader modules manually
         VkShaderModule vertModule, fragModule;
@@ -470,7 +470,7 @@ namespace lve {
         pipelineInfo.renderPass = renderPass;
         pipelineInfo.subpass = 0;
 
-        if (vkCreateGraphicsPipelines(device_.device(), VK_NULL_HANDLE, 1,
+        if (vkCreateGraphicsPipelines(device_.device(), device_.getPipelineCache(), 1,
                                       &pipelineInfo, nullptr, &compositePipeline_) != VK_SUCCESS) {
             vkDestroyShaderModule(device_.device(), vertModule, nullptr);
             vkDestroyShaderModule(device_.device(), fragModule, nullptr);
@@ -680,20 +680,6 @@ namespace lve {
             vkFreeMemory(device_.device(), offscreenMemory_, nullptr);
             offscreenMemory_ = VK_NULL_HANDLE;
         }
-    }
-
-    std::vector<char> UiRenderer::readFile(const std::string& filename) {
-        std::ifstream file(filename, std::ios::binary | std::ios::ate);
-        if (!file.is_open()) {
-            throw std::runtime_error("failed to open file: " + filename);
-        }
-        size_t fileSize = static_cast<size_t>(file.tellg());
-        file.seekg(0);
-        std::vector<char> buffer(fileSize);
-        if (!file.read(buffer.data(), fileSize)) {
-            throw std::runtime_error("failed to read file: " + filename);
-        }
-        return buffer;
     }
 
 } // namespace lve

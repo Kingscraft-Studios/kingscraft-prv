@@ -19,7 +19,6 @@ public:
     ResourceManager& operator=(const ResourceManager&) = delete;
 
     void loadTexture(const std::string& path, std::function<void(Texture*)> callback);
-    void loadShader(const std::string& path, std::function<void(const std::vector<char>&)> callback);
     void loadRawImageData(const std::string& path,
         std::function<void(unsigned char* pixels, int width, int height)> callback);
 
@@ -28,7 +27,6 @@ public:
 private:
     Device& device_;
     std::unordered_map<std::string, std::unique_ptr<Texture>> textures_;
-    std::unordered_map<std::string, std::vector<char>> shaders_;
 };
 
 } // namespace lve

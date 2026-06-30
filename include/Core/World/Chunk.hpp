@@ -43,6 +43,7 @@ namespace lve {
     class Chunk {
     public:
         Chunk(Device& device, glm::ivec2 gridPos, int verticesPerAxis, float spacing);
+        ~Chunk();
 
         glm::ivec2 getGridPos() const { return gridPos_; }
         glm::vec3 getWorldOrigin() const { return worldOrigin_; }

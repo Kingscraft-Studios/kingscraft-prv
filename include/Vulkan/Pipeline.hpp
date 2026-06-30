@@ -30,6 +30,10 @@ namespace lve {
         uint32_t subpass = 0;
 
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
+
+        // Specialization constants for fragment shader
+        std::vector<VkSpecializationMapEntry> specMapEntries;
+        std::vector<uint32_t> specData;
     };
 
     class Pipeline {

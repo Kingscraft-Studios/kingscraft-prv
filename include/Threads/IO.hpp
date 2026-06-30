@@ -14,6 +14,7 @@ namespace lve {
         static IO& Get();
 
         void writeLogFile(const std::string& path, const std::string& text);
+        void writeFile(const std::string& path, const std::vector<char>& data);
         std::vector<char> readFile(const std::string& path);
 
     private:

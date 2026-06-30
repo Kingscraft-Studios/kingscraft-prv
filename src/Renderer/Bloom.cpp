@@ -1,23 +1,11 @@
 #include "Renderer/Bloom.hpp"
+#include "Util/Preloader.hpp"
 #include <array>
 #include <cstring>
-#include <fstream>
 #include <stdexcept>
 
 namespace lve {
 
-static std::vector<char> readFile(const std::string& filename) {
-    std::ifstream file(filename, std::ios::ate | std::ios::binary);
-    if (!file.is_open()) {
-        throw std::runtime_error("failed to open file: " + filename);
-    }
-    size_t fileSize = static_cast<size_t>(file.tellg());
-    std::vector<char> buffer(fileSize);
-    file.seekg(0);
-    file.read(buffer.data(), fileSize);
-    file.close();
-    return buffer;
-}
 
 Bloom::Bloom(Device& device, VkExtent2D windowExtent, VkRenderPass sceneRenderPass,
              DescriptorManager& descriptorManager)
@@ -307,6 +295,7 @@ void Bloom::createDescriptors() {
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.maxSets = MAX_FRAMES_IN_FLIGHT * 4;
@@ -408,28 +397,22 @@ void Bloom::updateFrameDescriptor(uint32_t i) {
 }
 
 void Bloom::createBlurPipeline(VkRenderPass renderPass, uint32_t blurdirection, VkPipeline& outPipeline) {
-    auto vertMod = [&]() {
-        auto code = readFile("resources/shaders/PostProcess/bloom/gaussblur.vert.spv");
+    auto makeModule = [&](const std::vector<char>& code, const char* name) {
         VkShaderModuleCreateInfo ci{};
         ci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         ci.codeSize = code.size();
         ci.pCode = reinterpret_cast<const uint32_t*>(code.data());
         VkShaderModule mod;
         if (vkCreateShaderModule(device_.device(), &ci, nullptr, &mod) != VK_SUCCESS)
-            throw std::runtime_error("failed to create gaussblur vert shader module");
+            throw std::runtime_error("failed to create shader module: " + std::string(name));
         return mod;
-    }();
-    auto fragMod = [&]() {
-        auto code = readFile("resources/shaders/PostProcess/bloom/gaussblur.frag.spv");
-        VkShaderModuleCreateInfo ci{};
-        ci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        ci.codeSize = code.size();
-        ci.pCode = reinterpret_cast<const uint32_t*>(code.data());
-        VkShaderModule mod;
-        if (vkCreateShaderModule(device_.device(), &ci, nullptr, &mod) != VK_SUCCESS)
-            throw std::runtime_error("failed to create gaussblur frag shader module");
-        return mod;
-    }();
+    };
+    auto vertMod = makeModule(
+        Preloader::Get().getShader("resources/shaders/PostProcess/bloom/gaussblur.vert.spv"),
+        "gaussblur.vert");
+    auto fragMod = makeModule(
+        Preloader::Get().getShader("resources/shaders/PostProcess/bloom/gaussblur.frag.spv"),
+        "gaussblur.frag");
 
     VkPipelineShaderStageCreateInfo shaderStages[2]{};
     shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -519,7 +502,7 @@ void Bloom::createBlurPipeline(VkRenderPass renderPass, uint32_t blurdirection, 
     pipelineCI.layout = pipelineLayouts_.blur;
     pipelineCI.renderPass = renderPass;
 
-    if (vkCreateGraphicsPipelines(device_.device(), VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &outPipeline) != VK_SUCCESS) {
+    if (vkCreateGraphicsPipelines(device_.device(), device_.getPipelineCache(), 1, &pipelineCI, nullptr, &outPipeline) != VK_SUCCESS) {
         throw std::runtime_error("failed to create blur pipeline!");
     }
 
@@ -546,20 +529,23 @@ void Bloom::createPipelines() {
         throw std::runtime_error("failed to create scene pipeline layout!");
     }
 
-    auto loadShaderModule = [this](const std::string& path) {
-        auto code = readFile(path);
+    auto makeModule = [this](const std::vector<char>& code, const char* name) {
         VkShaderModuleCreateInfo ci{};
         ci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         ci.codeSize = code.size();
         ci.pCode = reinterpret_cast<const uint32_t*>(code.data());
         VkShaderModule mod;
         if (vkCreateShaderModule(device_.device(), &ci, nullptr, &mod) != VK_SUCCESS)
-            throw std::runtime_error("failed to create shader module: " + path);
+            throw std::runtime_error("failed to create shader module: " + std::string(name));
         return mod;
     };
 
-    auto vertModColor = loadShaderModule("resources/shaders/PostProcess/bloom/colorpass.vert.spv");
-    auto fragModColor = loadShaderModule("resources/shaders/PostProcess/bloom/colorpass.frag.spv");
+    auto vertModColor = makeModule(
+        Preloader::Get().getShader("resources/shaders/PostProcess/bloom/colorpass.vert.spv"),
+        "colorpass.vert");
+    auto fragModColor = makeModule(
+        Preloader::Get().getShader("resources/shaders/PostProcess/bloom/colorpass.frag.spv"),
+        "colorpass.frag");
 
     VkPipelineShaderStageCreateInfo shaderStages[2]{};
     shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -661,7 +647,7 @@ void Bloom::createPipelines() {
     depthStencil.depthTestEnable = VK_FALSE;
     depthStencil.depthWriteEnable = VK_FALSE;
 
-    if (vkCreateGraphicsPipelines(device_.device(), VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &pipelines_.glowPass) != VK_SUCCESS) {
+    if (vkCreateGraphicsPipelines(device_.device(), device_.getPipelineCache(), 1, &pipelineCI, nullptr, &pipelines_.glowPass) != VK_SUCCESS) {
         throw std::runtime_error("failed to create glow pass pipeline!");
     }
 

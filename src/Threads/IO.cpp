@@ -39,6 +39,16 @@ namespace lve {
         return buffer;
     }
 
+    void IO::writeFile(const std::string& path, const std::vector<char>& data) {
+        auto parent = std::filesystem::path(path).parent_path();
+        if (!parent.empty())
+            std::filesystem::create_directories(parent);
+
+        std::ofstream file(path, std::ios::binary);
+        if (file.is_open())
+            file.write(data.data(), data.size());
+    }
+
     void IO::writeLogFile(const std::string& path, const std::string& text) {
 
         // 1. ensure directory exists

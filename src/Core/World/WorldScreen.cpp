@@ -3,9 +3,10 @@
 #include "Vulkan/TextureCache.hpp"
 #include "Renderer/Renderer.hpp"
 #include "Renderer/RendererSettings.hpp"
-#include "Resource/ResourceManager.hpp"
+#include "Util/TimeUtil.hpp"
 #include "Core/KeyBindHandler.hpp"
 #include "Core/Registries.hpp"
+#include "Util/Preloader.hpp"
 #include <array>
 #include <iostream>
 #include <stdexcept>
@@ -24,7 +25,6 @@ namespace lve {
 
     void WorldScreen::init() {
         auto& device = App::get().getDevice();
-        auto& resourceManager = App::get().getResourceManager();
         auto& keybinds = App::get().getKeyBindHandler();
         auto& window = App::get().getWindow();
         auto& textureCache = App::get().getTextureCache();
@@ -37,23 +37,11 @@ namespace lve {
         textureCache.updateFromRegistry();
 
         createPipelineLayout();
+        lastDisableTextures_ = RendererSettings::get().disableTextures;
+        createPipeline(lastDisableTextures_);
 
         // Create world (chunks will load on first tick)
         world_ = std::make_unique<World>(device, 16, 24);
-
-        auto shadersReady = std::make_shared<int>(0);
-        resourceManager.loadShader("resources/shaders/terrain.vert.spv",
-            [this, shadersReady](const std::vector<char>& data) {
-                vertShaderCode_ = data;
-                if (++(*shadersReady) == 2)
-                    createPipeline();
-            });
-        resourceManager.loadShader("resources/shaders/terrain.frag.spv",
-            [this, shadersReady](const std::vector<char>& data) {
-                fragShaderCode_ = data;
-                if (++(*shadersReady) == 2)
-                    createPipeline();
-            });
 
         float aspect = static_cast<float>(extent_.width) / static_cast<float>(extent_.height);
         camera_.setAspectRatio(aspect);
@@ -94,15 +82,20 @@ namespace lve {
         }
 
         world_->update(camera_.getPosition().x, camera_.getPosition().z, RendererSettings::get().renderDistance);
+        world_->flushPendingCleanup();
+        world_->processCompletedChunks();
     }
 
     void WorldScreen::render(const FrameContext& ctx) {
-        fpsCounter_.setCpuGpuTimes(App::get().getCpuFrameTimeMs(),
-                                   App::get().getRenderer().getGpuFrameTimeMs());
         fpsCounter_.update();
-        world_->flushPendingCleanup();
-        world_->processCompletedChunks();
         if (!pipeline_) return;
+
+        bool currentDisableTextures = RendererSettings::get().disableTextures;
+        if (currentDisableTextures != lastDisableTextures_) {
+            lastDisableTextures_ = currentDisableTextures;
+            pipeline_.reset();
+            createPipeline(currentDisableTextures);
+        }
 
         pipeline_->bind(ctx.cmd);
 
@@ -127,6 +120,13 @@ namespace lve {
         float chunkSize = static_cast<float>(world_->getChunkSize() - 1);
         float worldHeight = static_cast<float>(world_->getHeight());
 
+        // Terrain GPU timestamp start
+        uint32_t qi = ctx.frameIndex * 4;
+        vkCmdWriteTimestamp(ctx.cmd, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, ctx.gpuQueryPool, qi + 2);
+
+        double frustumTime = 0.0;
+        double drawTime = 0.0;
+
         if (settings.enableFrustumCulling) {
             struct FrustumPlane { glm::vec3 normal; float d; };
             auto extractPlanes = [](const glm::mat4& m) -> std::array<FrustumPlane, 6> {
@@ -145,6 +145,7 @@ namespace lve {
                 return p;
             };
 
+            auto frustumStart = TimeUtil::uptimeSeconds();
             auto frustum = extractPlanes(viewProj);
             for (Chunk* chunk : world_->getLoadedChunks()) {
                 glm::vec3 origin = chunk->getWorldOrigin();
@@ -165,13 +166,29 @@ namespace lve {
                 }
                 if (!visible) continue;
 
+                double drawStart = TimeUtil::uptimeSeconds();
                 chunk->bindAndDraw(ctx.cmd);
+                drawTime += TimeUtil::uptimeSeconds() - drawStart;
             }
+            frustumTime = TimeUtil::uptimeSeconds() - frustumStart - drawTime;
         } else {
+            auto drawStart = TimeUtil::uptimeSeconds();
             for (Chunk* chunk : world_->getLoadedChunks()) {
                 chunk->bindAndDraw(ctx.cmd);
             }
+            drawTime = TimeUtil::uptimeSeconds() - drawStart;
         }
+
+        // Terrain GPU timestamp end
+        vkCmdWriteTimestamp(ctx.cmd, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, ctx.gpuQueryPool, qi + 3);
+
+        fpsCounter_.setCpuGpuTimes(App::get().getCpuFrameTimeMs(),
+                                   App::get().getRenderer().getGpuFrameTimeMs(),
+                                   App::get().getRenderer().getTerrainGpuTimeMs(),
+                                   App::get().getCpuTickMs(),
+                                   App::get().getCpuSubmitMs(),
+                                   frustumTime * 1000.0,
+                                   drawTime * 1000.0);
 
         App::get().getUiSystem().render(ctx.cmd, ctx.renderPass);
     }
@@ -233,14 +250,24 @@ namespace lve {
         }
     }
 
-    void WorldScreen::createPipeline() {
-        assert(!vertShaderCode_.empty() && !fragShaderCode_.empty());
+    void WorldScreen::createPipeline(bool disableTextures) {
+        auto& vertShaderCode = Preloader::Get().getShader("resources/shaders/terrain.vert.spv");
+        auto& fragShaderCode = Preloader::Get().getShader("resources/shaders/terrain.frag.spv");
 
         auto& device = App::get().getDevice();
         auto& renderer = App::get().getRenderer();
 
         PipelineConfigInfo configInfo{};
         Pipeline::defaultPipelineConfigInfo(configInfo);
+
+        // Specialization constant: DISABLE_TEXTURES (constant_id = 0)
+        VkSpecializationMapEntry entry{};
+        entry.constantID = 0;
+        entry.offset = 0;
+        entry.size = sizeof(uint32_t);
+        configInfo.specMapEntries = {entry};
+        uint32_t specValue = disableTextures ? 1 : 0;
+        configInfo.specData = {specValue};
 
         auto bindingDesc = ChunkVertex::getBindingDescription();
         auto attributeDescs = ChunkVertex::getAttributeDescriptions();
@@ -250,7 +277,7 @@ namespace lve {
         configInfo.renderPass = renderer.getWorldRenderPass();
         configInfo.pipelineLayout = pipelineLayout_;
 
-        pipeline_ = std::make_unique<Pipeline>(device, vertShaderCode_, fragShaderCode_, configInfo);
+        pipeline_ = std::make_unique<Pipeline>(device, vertShaderCode, fragShaderCode, configInfo);
     }
 
 } // namespace lve

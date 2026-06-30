@@ -82,6 +82,11 @@ void ChunkMesher::generate(Chunk& chunk, const std::vector<uint8_t>& blockIds, i
                     uint8_t blockId = getBlock(coords[0], coords[1], coords[2]);
                     if (blockId == 0) continue;
 
+                    {
+                        int nc[3] = {coords[0] + nx[dir], coords[1] + ny[dir], coords[2] + nz[dir]};
+                        if (getBlock(nc[0], nc[1], nc[2]) != 0) continue;
+                    }
+
                     Block* block = registry.get(blockId);
                     if (!block) continue;
 

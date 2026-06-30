@@ -120,10 +120,12 @@ namespace lve {
 
         if (renderState == RenderState::Running) {
             tickAccumulator_ += dt_;
+            double tickStart = TimeUtil::uptimeSeconds();
             while (tickAccumulator_ >= TICK_INTERVAL) {
                 screenManager->tick(TICK_INTERVAL);
                 tickAccumulator_ -= TICK_INTERVAL;
             }
+            cpuTickMs_ = (TimeUtil::uptimeSeconds() - tickStart) * 1000.0;
 
             drawFrame();
 
@@ -199,6 +201,7 @@ namespace lve {
         frameCtx.dt = dt_;
         frameCtx.frameIndex = renderer->getFrameIndex();
         frameCtx.imageIndex = imageIndex;
+        frameCtx.gpuQueryPool = renderer->getGpuQueryPool();
         frameCtx.postProcessing = postProcessor_.get();
 
         // Pre-scene effects (glow passes, downsampling, etc.)
@@ -227,12 +230,14 @@ namespace lve {
 
         cpuFrameTimeMs_ = (TimeUtil::uptimeSeconds() - cpuStart) * 1000.0;
 
+        double submitStart = TimeUtil::uptimeSeconds();
         if (!renderer->endFrame()) {
             window.resetWindowResizedFlag();
             recreateSwapChain();
             auto newExtent = window.getExtent();
             uiSystem->resize(newExtent.width, newExtent.height);
         }
+        cpuSubmitMs_ = (TimeUtil::uptimeSeconds() - submitStart) * 1000.0;
     }
 
 }  // namespace lve

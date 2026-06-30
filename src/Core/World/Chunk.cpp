@@ -9,12 +9,16 @@ namespace lve {
         , verticesPerAxis_(verticesPerAxis)
         , spacing_(spacing)
     {
-        float size = static_cast<float>(verticesPerAxis - 1) * spacing;
+        float size = static_cast<float>(verticesPerAxis) * spacing;
         worldOrigin_ = glm::vec3(
             static_cast<float>(gridPos.x) * size,
             0.0f,
             static_cast<float>(gridPos.y) * size
         );
+    }
+
+    Chunk::~Chunk() {
+        cleanup();
     }
 
     void Chunk::upload() {

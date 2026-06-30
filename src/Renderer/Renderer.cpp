@@ -6,6 +6,8 @@
 
 namespace lve {
 
+constexpr uint32_t QUERIES_PER_FRAME = 4;
+
 Renderer::Renderer(Device& device, VkExtent2D initialExtent)
     : device_(device), extent_(initialExtent) {
     swapchain_ = std::make_unique<SwapChain>(device_, extent_);
@@ -88,16 +90,26 @@ bool Renderer::beginFrame() {
     device_.getStagingArena().advanceFrame();
 
     {
-        uint32_t queryStart = currentFrame_ * 2;
-        uint64_t timestamps[2];
-        VkResult tsResult = vkGetQueryPoolResults(
+        uint32_t queryStart = currentFrame_ * QUERIES_PER_FRAME;
+        uint64_t ts[2];
+        VkResult r = vkGetQueryPoolResults(
             device_.device(), gpuQueryPool_,
-            queryStart, 2, sizeof(timestamps), timestamps, sizeof(uint64_t),
+            queryStart, 2, sizeof(ts), ts, sizeof(uint64_t),
             VK_QUERY_RESULT_64_BIT);
-        if (tsResult == VK_SUCCESS) {
-            double startNs = static_cast<double>(timestamps[0]) * timestampPeriod_;
-            double endNs = static_cast<double>(timestamps[1]) * timestampPeriod_;
+        if (r == VK_SUCCESS) {
+            double startNs = static_cast<double>(ts[0]) * timestampPeriod_;
+            double endNs = static_cast<double>(ts[1]) * timestampPeriod_;
             gpuFrameTimeMs_ = (endNs - startNs) / 1000000.0;
+        }
+
+        r = vkGetQueryPoolResults(
+            device_.device(), gpuQueryPool_,
+            queryStart + 2, 2, sizeof(ts), ts, sizeof(uint64_t),
+            VK_QUERY_RESULT_64_BIT);
+        if (r == VK_SUCCESS) {
+            double startNs = static_cast<double>(ts[0]) * timestampPeriod_;
+            double endNs = static_cast<double>(ts[1]) * timestampPeriod_;
+            terrainGpuTimeMs_ = (endNs - startNs) / 1000000.0;
         }
     }
 
@@ -125,8 +137,8 @@ void Renderer::executeRenderPass(
 
     VkCommandBuffer cmd = commandBuffers_[currentImageIndex_];
 
-    uint32_t qi = currentFrame_ * 2;
-    vkCmdResetQueryPool(cmd, gpuQueryPool_, qi, 2);
+    uint32_t qi = currentFrame_ * QUERIES_PER_FRAME;
+    vkCmdResetQueryPool(cmd, gpuQueryPool_, qi, QUERIES_PER_FRAME);
     vkCmdWriteTimestamp(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, gpuQueryPool_, qi);
 
     VkRenderPassBeginInfo rpInfo{};
@@ -323,13 +335,13 @@ void Renderer::createQueryPool() {
     VkQueryPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
     poolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
-    poolInfo.queryCount = MAX_FRAMES_IN_FLIGHT * 2;
+    poolInfo.queryCount = MAX_FRAMES_IN_FLIGHT * QUERIES_PER_FRAME;
     if (vkCreateQueryPool(device_.device(), &poolInfo, nullptr, &gpuQueryPool_) != VK_SUCCESS) {
         throw std::runtime_error("failed to create GPU timestamp query pool!");
     }
 
     VkCommandBuffer cmd = device_.beginSingleTimeCommands();
-    vkCmdResetQueryPool(cmd, gpuQueryPool_, 0, MAX_FRAMES_IN_FLIGHT * 2);
+    vkCmdResetQueryPool(cmd, gpuQueryPool_, 0, MAX_FRAMES_IN_FLIGHT * QUERIES_PER_FRAME);
     device_.endSingleTimeCommands(cmd);
 }
 
